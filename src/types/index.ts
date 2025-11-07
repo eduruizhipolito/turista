@@ -10,12 +10,12 @@ export interface IPlace {
 }
 
 export interface ICheckinNFT {
-  token_id: bigint
+  token_id: number
   place_id: number
   place_name: string
-  latitude: bigint
-  longitude: bigint
-  check_in_timestamp: bigint
+  latitude: number
+  longitude: number
+  check_in_timestamp: number
   owner: string
   image_url: string
 }
@@ -42,6 +42,5 @@ export interface IUserStats {
 export interface IWalletState {
   publicKey: string | null
   isConnected: boolean
-  balanceXLM: number
-  balanceTUR: number
+  isLoading: boolean
 }
