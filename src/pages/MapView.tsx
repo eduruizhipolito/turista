@@ -11,12 +11,12 @@ const CUSCO_CENTER = { lat: -13.5165, lng: -71.9786 }
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
 
 export default function MapView() {
-  const [demoMode, setDemoMode] = useState(true) // Modo demo activado por defecto
+  const [demoMode] = useState(true) // Modo demo activado por defecto
   const [selectedPlace, setSelectedPlace] = useState<IPlace | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
   const [userNFTs, setUserNFTs] = useState<ICheckinNFT[]>([])
-  const [loadingNFTs, setLoadingNFTs] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [, setLoadingNFTs] = useState(false)
+  const [, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   
   const { publicKey, isConnected, kit } = useWallet()
   const { latitude, longitude, error, loading } = useGeolocation(

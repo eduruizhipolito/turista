@@ -16,7 +16,7 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
   const [checkingIn, setCheckingIn] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [userNFTs, setUserNFTs] = useState<ICheckinNFT[]>([]);
-  const [loadingNFTs, setLoadingNFTs] = useState(false);
+  const [, setLoadingNFTs] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
   const { publicKey, isConnected, kit } = useWallet();

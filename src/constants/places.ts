@@ -9,7 +9,9 @@ export const PLACES: IPlace[] = [
     lng: -71.978516,
     imageNFT: "/nft-plaza-armas.png",
     radius: 200,
-    category: "historical"
+    category: "historical",
+    region: "Cusco",
+    altitude: 3399
   },
   {
     id: 2,
@@ -19,6 +21,8 @@ export const PLACES: IPlace[] = [
     lng: -71.975556,
     imageNFT: "/nft-qoricancha.png",
     radius: 200,
-    category: "historical"
+    category: "historical",
+    region: "Cusco",
+    altitude: 3399
   }
 ]

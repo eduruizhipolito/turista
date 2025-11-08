@@ -8,7 +8,7 @@ import ProductCard from '@/components/ProductCard';
 const MACHU_PICCHU_IMG = 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1600&h=900&fit=crop';
 
 export default function Home() {
-  const [demoMode, setDemoMode] = useState(true); // Modo demo activado por defecto
+  const [demoMode] = useState(true); // Modo demo activado por defecto
 
   return (
     <div>
