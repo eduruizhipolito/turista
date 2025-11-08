@@ -16,6 +16,6 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Scout Audit
-        uses: coinfabrik/scout-audit-action@v1
+        uses: coinfabrik/scout-actions@v3
         with:
           path: 'contracts'
