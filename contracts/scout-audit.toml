@@ -1,0 +1,28 @@
+# Scout Audit Configuration for Turista Contracts
+
+# Contracts to audit
+[[contracts]]
+name = "tur_token"
+path = "tur_token"
+
+[[contracts]]
+name = "checkin_nft"
+path = "checkin_nft"
+
+[[contracts]]
+name = "marketplace"
+path = "marketplace"
+
+# Audit settings
+[audit]
+# Minimum severity level to report (low, medium, high, critical)
+min_severity = "low"
+
+# Enable all detectors
+enable_all = true
+
+# Output format (text, json, sarif)
+output_format = "text"
+
+# Generate detailed report
+verbose = true
