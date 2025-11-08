@@ -12,6 +12,7 @@ export default function Marketplace() {
   const [useDiscount, setUseDiscount] = useState(false)
   const [balances, setBalances] = useState({ xlm: 0, tur: 0 })
   const [loadingBalances, setLoadingBalances] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
     if (selectedProduct && publicKey) {
@@ -35,7 +36,7 @@ export default function Marketplace() {
 
   const handlePurchase = async (product: IProduct, withDiscount: boolean) => {
     if (!isConnected || !publicKey || !kit) {
-      alert('Por favor conecta tu wallet primero')
+      setToast({ message: 'Por favor conecta tu wallet primero', type: 'error' })
       return
     }
 
@@ -61,17 +62,17 @@ export default function Marketplace() {
       }
 
       if (result.success) {
-        alert(`✅ ¡Compra exitosa de ${product.name}!`)
+        setToast({ message: `¡Compra exitosa de ${product.name}!`, type: 'success' })
         setSelectedProduct(null)
         
         // Reload balances after successful purchase
         await loadBalances()
       } else {
-        alert(`❌ Error: ${result.error}`)
+        setToast({ message: `Error: ${result.error}`, type: 'error' })
       }
     } catch (error) {
       console.error('Purchase error:', error)
-      alert('Error al realizar la compra. Intenta de nuevo.')
+      setToast({ message: 'Error al realizar la compra. Intenta de nuevo.', type: 'error' })
     } finally {
       setPurchasing(false)
     }
@@ -255,6 +256,24 @@ export default function Marketplace() {
                 {purchasing ? '⏳ Comprando...' : 'Confirmar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
+          <div className={`${
+            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md`}>
+            <span className="text-2xl">{toast.type === 'success' ? '✅' : '❌'}</span>
+            <p className="flex-1 font-medium">{toast.message}</p>
+            <button
+              onClick={() => setToast(null)}
+              className="text-white/80 hover:text-white text-xl font-bold leading-none"
+            >
+              ×
+            </button>
           </div>
         </div>
       )}

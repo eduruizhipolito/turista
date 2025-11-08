@@ -1,19 +1,22 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { APIProvider, Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useWallet } from '@/hooks/useWallet'
 import { PLACES } from '@/data/places'
 import { calculateDistance, isWithinRadius } from '@/utils/distance'
 import { checkinService } from '@/services/checkin.service'
-import { IPlace } from '@/types'
+import { IPlace, ICheckinNFT } from '@/types'
 
 const CUSCO_CENTER = { lat: -13.5165, lng: -71.9786 }
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
 
 export default function MapView() {
-  const [demoMode, setDemoMode] = useState(false)
+  const [demoMode, setDemoMode] = useState(true) // Modo demo activado por defecto
   const [selectedPlace, setSelectedPlace] = useState<IPlace | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
+  const [userNFTs, setUserNFTs] = useState<ICheckinNFT[]>([])
+  const [loadingNFTs, setLoadingNFTs] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   
   const { publicKey, isConnected, kit } = useWallet()
   const { latitude, longitude, error, loading } = useGeolocation(
@@ -21,6 +24,39 @@ export default function MapView() {
     CUSCO_CENTER.lat,
     CUSCO_CENTER.lng
   )
+
+  // Cargar NFTs del usuario
+  const loadUserNFTs = useCallback(async () => {
+    if (!publicKey) {
+      setUserNFTs([])
+      return
+    }
+    
+    setLoadingNFTs(true)
+    try {
+      const nfts = await checkinService.getUserNFTs(publicKey)
+      setUserNFTs(nfts)
+    } catch (error) {
+      console.error('Error loading user NFTs:', error)
+      setUserNFTs([])
+    } finally {
+      setLoadingNFTs(false)
+    }
+  }, [publicKey])
+
+  // Cargar NFTs cuando el usuario se conecta
+  useEffect(() => {
+    if (isConnected && publicKey) {
+      loadUserNFTs()
+    } else {
+      setUserNFTs([])
+    }
+  }, [isConnected, publicKey, loadUserNFTs])
+
+  // Verificar si un lugar ya tiene check-in
+  const hasCheckedIn = useCallback((placeId: number): boolean => {
+    return userNFTs.some(nft => nft.place_id === placeId)
+  }, [userNFTs])
 
   const handleMarkerClick = useCallback((place: IPlace) => {
     setSelectedPlace(place)
@@ -32,12 +68,12 @@ export default function MapView() {
 
   const handleCheckin = useCallback(async (place: IPlace) => {
     if (!isConnected || !publicKey || !kit) {
-      alert('Por favor conecta tu wallet primero')
+      setToast({ message: 'Por favor conecta tu wallet primero', type: 'error' })
       return
     }
 
     if (!latitude || !longitude) {
-      alert('No se pudo obtener tu ubicación')
+      setToast({ message: 'No se pudo obtener tu ubicación', type: 'error' })
       return
     }
 
@@ -46,7 +82,7 @@ export default function MapView() {
     
     if (!withinRadius) {
       const distance = calculateDistance(latitude, longitude, place.lat, place.lng)
-      alert(`Estás muy lejos (${Math.round(distance)}m). Debes estar a menos de ${place.radius}m del lugar.`)
+      setToast({ message: `Estás muy lejos (${Math.round(distance)}m). Debes estar a menos de ${place.radius}m del lugar.`, type: 'error' })
       return
     }
 
@@ -62,18 +98,20 @@ export default function MapView() {
       })
 
       if (result.success) {
-        alert(`✅ ¡Check-in exitoso en ${place.name}! NFT minteado.`)
+        setToast({ message: `¡Check-in exitoso en ${place.name}! NFT minteado`, type: 'success' })
         setSelectedPlace(null)
+        // Recargar NFTs después del check-in exitoso
+        await loadUserNFTs()
       } else {
-        alert(`❌ Error: ${result.error}`)
+        setToast({ message: `Error: ${result.error}`, type: 'error' })
       }
     } catch (error) {
       console.error('Check-in error:', error)
-      alert('Error al hacer check-in. Intenta de nuevo.')
+      setToast({ message: 'Error al hacer check-in. Intenta de nuevo.', type: 'error' })
     } finally {
       setCheckingIn(false)
     }
-  }, [isConnected, publicKey, kit, latitude, longitude])
+  }, [isConnected, publicKey, kit, latitude, longitude, loadUserNFTs])
 
   if (!API_KEY) {
     return (
@@ -93,7 +131,7 @@ export default function MapView() {
       {/* Header con controles */}
       <div className="bg-white border-b p-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">🗺️ Mapa de Cusco</h1>
+          <h1 className="text-2xl font-bold text-gray-800">🗺️ Tu Ubicación</h1>
           <p className="text-sm text-gray-600">
             {loading && 'Obteniendo ubicación...'}
             {error && <span className="text-red-600">{error}</span>}
@@ -105,8 +143,8 @@ export default function MapView() {
           </p>
         </div>
 
-        {/* Toggle Modo Demo */}
-        <div className="flex items-center gap-3">
+        {/* Toggle Modo Demo - Comentado, siempre activo */}
+        {/* <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <span className="text-sm font-medium text-gray-700">Modo Demo</span>
             <input
@@ -116,7 +154,7 @@ export default function MapView() {
               className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
           </label>
-        </div>
+        </div> */}
       </div>
 
       {/* Mapa */}
@@ -130,18 +168,25 @@ export default function MapView() {
             disableDefaultUI={false}
           >
             {/* Marcadores de lugares turísticos */}
-            {PLACES.map((place) => (
-              <AdvancedMarker
-                key={place.id}
-                position={{ lat: place.lat, lng: place.lng }}
-                onClick={() => handleMarkerClick(place)}
-                title={place.name}
-              >
-                <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg cursor-pointer hover:bg-blue-700 transition-colors">
-                  <span className="text-lg">📍</span>
-                </div>
-              </AdvancedMarker>
-            ))}
+            {PLACES.map((place) => {
+              const alreadyVisited = hasCheckedIn(place.id)
+              return (
+                <AdvancedMarker
+                  key={place.id}
+                  position={{ lat: place.lat, lng: place.lng }}
+                  onClick={() => handleMarkerClick(place)}
+                  title={place.name}
+                >
+                  <div className={`rounded-full w-10 h-10 flex items-center justify-center shadow-lg cursor-pointer transition-colors ${
+                    alreadyVisited 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  } text-white`}>
+                    <span className="text-lg">{alreadyVisited ? '✓' : '📍'}</span>
+                  </div>
+                </AdvancedMarker>
+              )
+            })}
 
             {/* Marcador de ubicación del usuario */}
             {latitude && longitude && (
@@ -163,7 +208,7 @@ export default function MapView() {
                   <h3 className="font-bold text-lg mb-1">{selectedPlace.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{selectedPlace.description}</p>
                   
-                  <div className="flex items-center gap-2 text-xs mb-3">
+                  <div className="flex items-center gap-2 text-xs mb-3 flex-wrap">
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       {selectedPlace.category}
                     </span>
@@ -174,22 +219,36 @@ export default function MapView() {
                     }`}>
                       {calculateDistance(latitude, longitude, selectedPlace.lat, selectedPlace.lng).toFixed(0)}m
                     </span>
+                    {hasCheckedIn(selectedPlace.id) && (
+                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded font-medium">
+                        ✓ Visitado
+                      </span>
+                    )}
                   </div>
 
                   {isConnected ? (
-                    <button
-                      onClick={() => handleCheckin(selectedPlace)}
-                      disabled={checkingIn || !isWithinRadius(latitude, longitude, selectedPlace.lat, selectedPlace.lng, selectedPlace.radius)}
-                      className={`w-full py-2 px-4 rounded font-medium text-sm transition-colors ${
-                        checkingIn
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : isWithinRadius(latitude, longitude, selectedPlace.lat, selectedPlace.lng, selectedPlace.radius)
-                          ? 'bg-green-600 text-white hover:bg-green-700'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {checkingIn ? '⏳ Haciendo Check-in...' : '✓ Hacer Check-in'}
-                    </button>
+                    hasCheckedIn(selectedPlace.id) ? (
+                      <button
+                        disabled
+                        className="w-full py-2 px-4 rounded font-medium text-sm bg-gray-300 text-gray-600 cursor-not-allowed"
+                      >
+                        ✓ Already Checked-in
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleCheckin(selectedPlace)}
+                        disabled={checkingIn || !isWithinRadius(latitude, longitude, selectedPlace.lat, selectedPlace.lng, selectedPlace.radius)}
+                        className={`w-full py-2 px-4 rounded font-medium text-sm transition-colors ${
+                          checkingIn
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : isWithinRadius(latitude, longitude, selectedPlace.lat, selectedPlace.lng, selectedPlace.radius)
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {checkingIn ? '⏳ Haciendo Check-in...' : '✓ Hacer Check-in'}
+                      </button>
+                    )
                   ) : (
                     <p className="text-xs text-gray-500 text-center">
                       Conecta tu wallet para hacer check-in
@@ -202,46 +261,6 @@ export default function MapView() {
         </APIProvider>
       </div>
 
-      {/* Lista de lugares */}
-      <div className="bg-white border-t p-4 max-h-48 overflow-y-auto">
-        <h2 className="font-semibold text-gray-800 mb-3">Lugares Turísticos ({PLACES.length})</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {PLACES.map((place) => {
-            const distance = latitude && longitude
-              ? calculateDistance(latitude, longitude, place.lat, place.lng)
-              : null
-            const isNearby = distance !== null && distance <= place.radius
-
-            return (
-              <div
-                key={place.id}
-                onClick={() => handleMarkerClick(place)}
-                className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                  isNearby
-                    ? 'bg-green-50 border-green-300'
-                    : 'bg-gray-50 border-gray-200'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm text-gray-800">{place.name}</h3>
-                    <p className="text-xs text-gray-500 mt-1">{place.category}</p>
-                  </div>
-                  {distance !== null && (
-                    <span className={`text-xs font-medium px-2 py-1 rounded ${
-                      isNearby
-                        ? 'bg-green-200 text-green-800'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {distance.toFixed(0)}m
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
     </div>
   )
 }

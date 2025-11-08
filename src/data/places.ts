@@ -10,6 +10,8 @@ export const PLACES: IPlace[] = [
     imageNFT: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
     radius: 200,
     category: 'Plaza',
+    region: 'Cusco',
+    altitude: 3399,
   },
   {
     id: 2,
@@ -20,6 +22,8 @@ export const PLACES: IPlace[] = [
     imageNFT: 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800',
     radius: 500,
     category: 'Templo',
+    region: 'Cusco',
+    altitude: 3360,
   },
   {
     id: 3,
@@ -30,6 +34,8 @@ export const PLACES: IPlace[] = [
     imageNFT: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
     radius: 1500,
     category: 'Fortaleza',
+    region: 'Cusco',
+    altitude: 3701,
   },
   {
     id: 4,
@@ -40,6 +46,8 @@ export const PLACES: IPlace[] = [
     imageNFT: 'https://images.unsplash.com/photo-1531968455001-5c5272a41129?w=800',
     radius: 500,
     category: 'Barrio',
+    region: 'Cusco',
+    altitude: 3445,
   },
   {
     id: 5,
@@ -50,5 +58,7 @@ export const PLACES: IPlace[] = [
     imageNFT: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800',
     radius: 500,
     category: 'Mercado',
+    region: 'Cusco',
+    altitude: 3380,
   },
 ]

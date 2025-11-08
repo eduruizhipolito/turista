@@ -7,6 +7,8 @@ export interface IPlace {
   imageNFT: string
   radius: number
   category: string
+  region: string
+  altitude: number // metros sobre el nivel del mar
 }
 
 export interface ICheckinNFT {

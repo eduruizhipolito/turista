@@ -42,9 +42,9 @@ export default function Collection() {
     return (
       <div className="p-6">
         <div className="max-w-2xl mx-auto text-center py-12">
-          <h1 className="text-3xl font-bold mb-4">📦 Mi Colección de NFTs</h1>
+          <h1 className="text-3xl font-bold mb-4">📦 Mi Colección de Check-ins</h1>
           <p className="text-gray-600 mb-6">
-            Conecta tu wallet para ver tu colección de NFTs
+            Conecta tu wallet para ver tu colección de Check-ins
           </p>
           <div className="text-6xl mb-4">🔒</div>
         </div>

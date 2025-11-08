@@ -109,6 +109,100 @@ class BalanceService {
 
     return { xlm, tur }
   }
+
+  /**
+   * Obtiene el historial de pagos (compras) realizados por el usuario
+   */
+  async getPurchaseHistory(address: string): Promise<any[]> {
+    try {
+      // Obtener todas las operaciones de la cuenta
+      const operations = await this.horizonServer
+        .operations()
+        .forAccount(address)
+        .order('desc')
+        .limit(100)
+        .call()
+
+      // Agrupar operaciones por transacción
+      const transactionMap = new Map<string, any[]>()
+      
+      for (const op of operations.records) {
+        const txHash = op.transaction_hash
+        if (!transactionMap.has(txHash)) {
+          transactionMap.set(txHash, [])
+        }
+        transactionMap.get(txHash)!.push(op)
+      }
+
+      const purchases: any[] = []
+
+      // Analizar cada transacción para detectar compras
+      for (const [txHash, ops] of transactionMap.entries()) {
+        // Buscar pago XLM enviado
+        const xlmPayment = ops.find(
+          (op: any) => 
+            op.type === 'payment' && 
+            op.from === address &&
+            op.asset_type === 'native'
+        )
+
+        if (xlmPayment) {
+          const xlmAmount = parseFloat(xlmPayment.amount)
+          
+          // Buscar si hay un invoke_host_function en la misma transacción (indica uso de contrato)
+          const contractCalls = ops.filter((op: any) => op.type === 'invoke_host_function')
+          
+          let turAmount = 0
+          let purchaseType = 'xlm_only'
+          let hasDiscount = false
+
+          // Detectar si es compra con descuento basándose en los montos conocidos
+          // Mapeo de montos XLM de descuento a TUR
+          const discountPrices: Record<number, number> = {
+            30: 500,  // Tour Machu Picchu
+            25: 400,  // Tour Valle Sagrado
+            15: 250,  // Cena
+            20: 350,  // Experiencia Gastronómica
+            10: 150,  // Artesanía Andina
+            40: 600   // Textil Alpaca
+          }
+
+          // Si el monto coincide con un precio de descuento, es compra con descuento
+          if (discountPrices[xlmAmount]) {
+            hasDiscount = true
+            turAmount = discountPrices[xlmAmount]
+            purchaseType = 'xlm_tur_discount'
+          }
+          
+          // Verificación adicional: si hay llamadas a contrato, definitivamente es con descuento
+          if (contractCalls.length > 0 && !hasDiscount) {
+            hasDiscount = true
+            purchaseType = 'xlm_tur_discount'
+            // Intentar estimar TUR si no se detectó antes
+            if (turAmount === 0 && discountPrices[xlmAmount]) {
+              turAmount = discountPrices[xlmAmount]
+            }
+          }
+
+          purchases.push({
+            id: xlmPayment.id,
+            created_at: xlmPayment.created_at,
+            amountXLM: xlmAmount,
+            amountTUR: turAmount,
+            to: xlmPayment.to,
+            transaction_hash: txHash,
+            type: purchaseType,
+            hasDiscount: hasDiscount
+          })
+        }
+      }
+
+      return purchases
+    } catch (error) {
+      console.error('Error getting purchase history:', error)
+      return []
+    }
+  }
 }
 
 export const balanceService = new BalanceService()
