@@ -1,12 +1,263 @@
+import { useState, useEffect } from 'react'
+import { useWallet } from '@/hooks/useWallet'
+import { marketplaceService } from '@/services/marketplace.service'
+import { balanceService } from '@/services/balance.service'
+import { PRODUCTS } from '@/data/products'
+import { IProduct } from '@/types'
+
 export default function Marketplace() {
+  const { publicKey, isConnected, kit } = useWallet()
+  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null)
+  const [purchasing, setPurchasing] = useState(false)
+  const [useDiscount, setUseDiscount] = useState(false)
+  const [balances, setBalances] = useState({ xlm: 0, tur: 0 })
+  const [loadingBalances, setLoadingBalances] = useState(false)
+
+  useEffect(() => {
+    if (selectedProduct && publicKey) {
+      loadBalances()
+    }
+  }, [selectedProduct, publicKey])
+
+  const loadBalances = async () => {
+    if (!publicKey) return
+    
+    setLoadingBalances(true)
+    try {
+      const userBalances = await balanceService.getBalances(publicKey)
+      setBalances(userBalances)
+    } catch (error) {
+      console.error('Error loading balances:', error)
+    } finally {
+      setLoadingBalances(false)
+    }
+  }
+
+  const handlePurchase = async (product: IProduct, withDiscount: boolean) => {
+    if (!isConnected || !publicKey || !kit) {
+      alert('Por favor conecta tu wallet primero')
+      return
+    }
+
+    setPurchasing(true)
+
+    try {
+      let result
+      if (withDiscount) {
+        result = await marketplaceService.purchaseWithDiscount(
+          kit,
+          publicKey,
+          product.merchantAddress,
+          product.priceDiscountXLM,
+          product.priceDiscountTUR
+        )
+      } else {
+        result = await marketplaceService.purchaseWithXLM(
+          kit,
+          publicKey,
+          product.merchantAddress,
+          product.priceXLM
+        )
+      }
+
+      if (result.success) {
+        alert(`✅ ¡Compra exitosa de ${product.name}!`)
+        setSelectedProduct(null)
+        
+        // Reload balances after successful purchase
+        await loadBalances()
+      } else {
+        alert(`❌ Error: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Purchase error:', error)
+      alert('Error al realizar la compra. Intenta de nuevo.')
+    } finally {
+      setPurchasing(false)
+    }
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="p-6">
+        <div className="max-w-2xl mx-auto text-center py-12">
+          <h1 className="text-3xl font-bold mb-4">🛒 Marketplace</h1>
+          <p className="text-gray-600 mb-6">
+            Conecta tu wallet para comprar productos y servicios
+          </p>
+          <div className="text-6xl mb-4">🔒</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">
-        🛍️ Marketplace
-      </h1>
-      <p className="text-gray-600">
-        Usa tus tokens TUR para comprar productos y servicios locales.
-      </p>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">🛒 Marketplace</h1>
+        <p className="text-gray-600">
+          Compra con XLM o usa tus tokens TUR para obtener descuentos
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {PRODUCTS.map((product) => (
+          <div
+            key={product.id}
+            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+          >
+            <div className="relative h-48">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Product'
+                }}
+              />
+              <div className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                {product.category}
+              </div>
+            </div>
+
+            <div className="p-4">
+              <h3 className="font-bold text-lg mb-2">{product.name}</h3>
+              <p className="text-sm text-gray-600 mb-3">{product.description}</p>
+
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 mb-1">Vendedor: {product.merchantName}</p>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <span className="text-sm font-medium">Precio normal:</span>
+                  <span className="font-bold text-blue-600">{product.priceXLM} XLM</span>
+                </div>
+
+                <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Con descuento TUR:</span>
+                    <span className="text-xs text-gray-500">{product.priceDiscountTUR} TUR</span>
+                  </div>
+                  <span className="font-bold text-green-600">{product.priceDiscountXLM} XLM</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setSelectedProduct(product)
+                    setUseDiscount(false)
+                  }}
+                  disabled={purchasing}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Comprar con XLM
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedProduct(product)
+                    setUseDiscount(true)
+                  }}
+                  disabled={purchasing}
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Comprar con Descuento
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal de confirmación */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold mb-4">Confirmar Compra</h2>
+            
+            <div className="mb-6">
+              <p className="font-semibold mb-2">{selectedProduct.name}</p>
+              <p className="text-sm text-gray-600 mb-4">{selectedProduct.description}</p>
+              
+              {/* Balances del usuario */}
+              <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Tu saldo:</p>
+                {loadingBalances ? (
+                  <p className="text-sm text-gray-500">Cargando...</p>
+                ) : (
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-sm">
+                        <span className="font-bold text-blue-600">{balances.xlm.toFixed(2)}</span> XLM
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm">
+                        <span className="font-bold text-green-600">{balances.tur.toFixed(0)}</span> TUR
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {useDiscount ? (
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="font-semibold text-green-800 mb-2">Con Descuento TUR</p>
+                  <p className="text-sm">Pagarás: <span className="font-bold">{selectedProduct.priceDiscountXLM} XLM</span></p>
+                  <p className="text-sm">Se quemarán: <span className="font-bold">{selectedProduct.priceDiscountTUR} TUR</span></p>
+                  
+                  {/* Validación de saldo */}
+                  {!loadingBalances && (
+                    <>
+                      {balances.xlm < selectedProduct.priceDiscountXLM && (
+                        <p className="text-xs text-red-600 mt-2">⚠️ XLM insuficiente</p>
+                      )}
+                      {balances.tur < selectedProduct.priceDiscountTUR && (
+                        <p className="text-xs text-red-600 mt-2">⚠️ TUR insuficiente</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="font-semibold text-blue-800 mb-2">Precio Normal</p>
+                  <p className="text-sm">Pagarás: <span className="font-bold">{selectedProduct.priceXLM} XLM</span></p>
+                  
+                  {/* Validación de saldo */}
+                  {!loadingBalances && balances.xlm < selectedProduct.priceXLM && (
+                    <p className="text-xs text-red-600 mt-2">⚠️ XLM insuficiente</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSelectedProduct(null)}
+                disabled={purchasing}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handlePurchase(selectedProduct, useDiscount)}
+                disabled={
+                  purchasing ||
+                  loadingBalances ||
+                  (useDiscount
+                    ? balances.xlm < selectedProduct.priceDiscountXLM || balances.tur < selectedProduct.priceDiscountTUR
+                    : balances.xlm < selectedProduct.priceXLM)
+                }
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {purchasing ? '⏳ Comprando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -7,7 +7,8 @@ import {
   BASE_FEE,
   Address,
   nativeToScVal,
-  xdr
+  xdr,
+  scValToNative
 } from '@stellar/stellar-sdk'
 
 const CHECKIN_CONTRACT_ID = import.meta.env.VITE_CHECKIN_NFT_CONTRACT || ''
@@ -192,9 +193,28 @@ class CheckinService {
       const result = simulated.result?.retval
       if (!result) return []
 
-      // Parse the Vec<CheckinNFT> result
-      const nfts = result.value() as any[]
-      return nfts || []
+      // Parse the Vec<CheckinNFT> result using scValToNative
+      try {
+        const nftsRaw = scValToNative(result)
+        console.log('Parsed NFTs:', nftsRaw)
+        
+        // Convert to proper format
+        const nfts = nftsRaw.map((nft: any) => ({
+          token_id: Number(nft.token_id),
+          place_id: Number(nft.place_id),
+          place_name: nft.place_name,
+          latitude: Number(nft.latitude),
+          longitude: Number(nft.longitude),
+          check_in_timestamp: Number(nft.check_in_timestamp),
+          owner: nft.owner,
+          image_url: nft.image_url,
+        }))
+        
+        return nfts
+      } catch (e) {
+        console.error('Error parsing NFTs:', e)
+        return []
+      }
     } catch (error) {
       console.error('Error getting user NFTs:', error)
       return []

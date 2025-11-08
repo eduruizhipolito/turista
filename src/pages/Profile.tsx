@@ -1,7 +1,36 @@
 import { useWallet } from '@/hooks/useWallet'
+import { useEffect, useState } from 'react'
+import { balanceService } from '@/services/balance.service'
+import { checkinService } from '@/services/checkin.service'
 
 export default function Profile() {
   const { publicKey, isConnected } = useWallet()
+  const [turBalance, setTurBalance] = useState<number>(0)
+  const [nftCount, setNftCount] = useState<number>(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!publicKey) return
+
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        // Load TUR balance
+        const balance = await balanceService.getTURBalance(publicKey)
+        setTurBalance(balance)
+
+        // Load NFT count
+        const nfts = await checkinService.getUserNFTs(publicKey)
+        setNftCount(nfts.length)
+      } catch (error) {
+        console.error('Error loading profile data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [publicKey])
 
   if (!isConnected) {
     return (
@@ -35,15 +64,21 @@ export default function Profile() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">NFTs Coleccionados</p>
-            <p className="text-2xl font-bold text-blue-600">0</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {loading ? '...' : nftCount}
+            </p>
           </div>
           <div className="bg-purple-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">Balance TUR</p>
-            <p className="text-2xl font-bold text-purple-600">0</p>
+            <p className="text-2xl font-bold text-purple-600">
+              {loading ? '...' : turBalance.toFixed(2)}
+            </p>
           </div>
           <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">Lugares Visitados</p>
-            <p className="text-2xl font-bold text-green-600">0</p>
+            <p className="text-2xl font-bold text-green-600">
+              {loading ? '...' : nftCount}
+            </p>
           </div>
         </div>
       </div>
