@@ -18,4 +18,5 @@ jobs:
       - name: Run Scout Audit
         uses: coinfabrik/scout-actions@v3
         with:
-          target: 'contracts'
+          working_directory: 'contracts'
+          target: '.'
