@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, String, Vec, symbol_short};
+use soroban_sdk::{Address, Env, IntoVal, String, Symbol, Vec, contract, contracterror, contractimpl, contracttype, symbol_short};
 
 // NFT data structure
 #[contracttype]
@@ -112,21 +112,27 @@ impl CheckinNFTContract {
             token_id,
         );
 
-        // Transfer 1000 TUR to user (1000 * 10^7 = 10000000000)
+        // Mint 1000 TUR tokens to user as reward (1000 * 10^7 = 10000000000)
         let tur_amount: i128 = 1000_0000000;
         let tur_contract: Address = env.storage()
             .instance()
             .get(&DataKey::TurTokenContract)
             .unwrap();
-        
-        let admin: Address = env.storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .unwrap();
 
-        // Call TUR token transfer
-        // Note: In production, this would use contract invocation
-        // For now, we emit an event that the frontend will handle
+        // Invoke TUR token contract to mint tokens to user
+        let contract_address = env.current_contract_address();
+        env.invoke_contract::<()>(
+            &tur_contract,
+            &Symbol::new(&env, "mint_by_authorized"),
+            soroban_sdk::vec![
+                &env,
+                contract_address.into_val(&env),
+                to.clone().into_val(&env),
+                tur_amount.into_val(&env),
+            ],
+        );
+
+        // Emit reward event
         env.events().publish(
             (symbol_short!("tur_rwrd"), to, tur_amount),
             token_id,
@@ -203,6 +209,13 @@ impl CheckinNFTContract {
 mod test {
     use super::*;
     use soroban_sdk::{testutils::Address as _, Env};
+    
+    // Import TUR token contract for testing
+    mod tur_token {
+        soroban_sdk::contractimport!(
+            file = "../target/wasm32v1-none/release/tur_token.optimized.wasm"
+        );
+    }
 
     #[test]
     fn test_initialize() {
@@ -221,16 +234,29 @@ mod test {
     #[test]
     fn test_mint() {
         let env = Env::default();
-        env.mock_all_auths();
+        env.mock_all_auths_allowing_non_root_auth();
 
+        // Register and initialize TUR token contract
+        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_client = tur_token::Client::new(&env, &tur_contract_id);
+        let admin = Address::generate(&env);
+        tur_client.initialize(
+            &admin,
+            &String::from_str(&env, "Turista Token"),
+            &String::from_str(&env, "TUR"),
+            &7,
+            &10_000_000_0000000,
+        );
+
+        // Register CheckinNFT contract
         let contract_id = env.register_contract(None, CheckinNFTContract);
         let client = CheckinNFTContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        let tur_contract = Address::generate(&env);
         let user = Address::generate(&env);
 
-        client.initialize(&admin, &tur_contract);
+        client.initialize(&admin, &tur_contract_id);
+        
+        // Authorize CheckinNFT contract to mint TUR tokens
+        tur_client.set_authorized_minter(&contract_id, &true);
 
         let place_id = 1u32;
         let place_name = String::from_str(&env, "Plaza de Armas");
@@ -260,16 +286,29 @@ mod test {
     #[test]
     fn test_cannot_checkin_twice() {
         let env = Env::default();
-        env.mock_all_auths();
+        env.mock_all_auths_allowing_non_root_auth();
 
+        // Register and initialize TUR token contract
+        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_client = tur_token::Client::new(&env, &tur_contract_id);
+        let admin = Address::generate(&env);
+        tur_client.initialize(
+            &admin,
+            &String::from_str(&env, "Turista Token"),
+            &String::from_str(&env, "TUR"),
+            &7,
+            &10_000_000_0000000,
+        );
+
+        // Register CheckinNFT contract
         let contract_id = env.register_contract(None, CheckinNFTContract);
         let client = CheckinNFTContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        let tur_contract = Address::generate(&env);
         let user = Address::generate(&env);
 
-        client.initialize(&admin, &tur_contract);
+        client.initialize(&admin, &tur_contract_id);
+        
+        // Authorize CheckinNFT contract to mint TUR tokens
+        tur_client.set_authorized_minter(&contract_id, &true);
 
         let place_id = 1u32;
         let place_name = String::from_str(&env, "Plaza de Armas");
@@ -288,17 +327,30 @@ mod test {
     #[test]
     fn test_transfer_fails() {
         let env = Env::default();
-        env.mock_all_auths();
+        env.mock_all_auths_allowing_non_root_auth();
 
+        // Register and initialize TUR token contract
+        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_client = tur_token::Client::new(&env, &tur_contract_id);
+        let admin = Address::generate(&env);
+        tur_client.initialize(
+            &admin,
+            &String::from_str(&env, "Turista Token"),
+            &String::from_str(&env, "TUR"),
+            &7,
+            &10_000_000_0000000,
+        );
+
+        // Register CheckinNFT contract
         let contract_id = env.register_contract(None, CheckinNFTContract);
         let client = CheckinNFTContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        let tur_contract = Address::generate(&env);
         let user1 = Address::generate(&env);
         let user2 = Address::generate(&env);
 
-        client.initialize(&admin, &tur_contract);
+        client.initialize(&admin, &tur_contract_id);
+        
+        // Authorize CheckinNFT contract to mint TUR tokens
+        tur_client.set_authorized_minter(&contract_id, &true);
 
         let place_id = 1u32;
         let token_id = client.mint(
@@ -318,16 +370,29 @@ mod test {
     #[test]
     fn test_get_user_nfts() {
         let env = Env::default();
-        env.mock_all_auths();
+        env.mock_all_auths_allowing_non_root_auth();
 
+        // Register and initialize TUR token contract
+        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_client = tur_token::Client::new(&env, &tur_contract_id);
+        let admin = Address::generate(&env);
+        tur_client.initialize(
+            &admin,
+            &String::from_str(&env, "Turista Token"),
+            &String::from_str(&env, "TUR"),
+            &7,
+            &10_000_000_0000000,
+        );
+
+        // Register CheckinNFT contract
         let contract_id = env.register_contract(None, CheckinNFTContract);
         let client = CheckinNFTContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        let tur_contract = Address::generate(&env);
         let user = Address::generate(&env);
 
-        client.initialize(&admin, &tur_contract);
+        client.initialize(&admin, &tur_contract_id);
+        
+        // Authorize CheckinNFT contract to mint TUR tokens
+        tur_client.set_authorized_minter(&contract_id, &true);
 
         // Mint 2 NFTs for the user
         client.mint(

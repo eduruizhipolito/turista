@@ -12,6 +12,7 @@ pub enum DataKey {
     Symbol,
     Decimals,
     Admin,
+    AuthorizedMinter(Address),
 }
 
 // Error types
@@ -208,6 +209,15 @@ impl TurToken {
         // Require admin authentication
         admin.require_auth();
 
+        Self::internal_mint(env, to, amount)
+    }
+
+    /// Internal mint function (no auth required)
+    fn internal_mint(
+        env: Env,
+        to: Address,
+        amount: i128,
+    ) -> Result<(), Error> {
         // Validate amount
         if amount < 0 {
             return Err(Error::InsufficientBalance);
@@ -239,6 +249,55 @@ impl TurToken {
         env.events().publish(
             (symbol_short!("mint"), to),
             amount,
+        );
+
+        Ok(())
+    }
+
+    /// Mint tokens by authorized minter (no admin auth required)
+    pub fn mint_by_authorized(
+        env: Env,
+        minter: Address,
+        to: Address,
+        amount: i128,
+    ) -> Result<(), Error> {
+        // Check if minter is authorized
+        let is_authorized: bool = env.storage()
+            .instance()
+            .get(&DataKey::AuthorizedMinter(minter))
+            .unwrap_or(false);
+
+        if !is_authorized {
+            return Err(Error::Unauthorized);
+        }
+
+        Self::internal_mint(env, to, amount)
+    }
+
+    /// Authorize a contract to mint tokens (only admin)
+    pub fn set_authorized_minter(
+        env: Env,
+        minter: Address,
+        authorized: bool,
+    ) -> Result<(), Error> {
+        // Get admin
+        let admin: Address = env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .unwrap();
+
+        // Require admin authentication
+        admin.require_auth();
+
+        // Set authorization
+        env.storage()
+            .instance()
+            .set(&DataKey::AuthorizedMinter(minter.clone()), &authorized);
+
+        // Emit event
+        env.events().publish(
+            (symbol_short!("auth_mnt"), minter, authorized),
+            (),
         );
 
         Ok(())
