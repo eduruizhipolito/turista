@@ -166,7 +166,7 @@ export default function MapView() {
         <APIProvider apiKey={API_KEY}>
           <Map
             defaultCenter={CUSCO_CENTER}
-            defaultZoom={14}
+            defaultZoom={16}
             mapId="turista-map"
             gestureHandling="greedy"
             disableDefaultUI={false}
