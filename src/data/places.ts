@@ -7,7 +7,7 @@ export const PLACES: IPlace[] = [
     description: 'The main square of Cusco, surrounded by colonial architecture and the Cathedral.',
     lat: -13.5165,
     lng: -71.9786,
-    imageNFT: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800',
+    imageNFT: 'https://images.unsplash.com/photo-1685495183757-cf4b65b8440f?w=800',
     radius: 400,
     category: 'Square',
     region: 'Cusco',
