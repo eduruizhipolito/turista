@@ -85,13 +85,13 @@ export default function Profile() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
           <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Balance XLM</p>
+            <p className="text-sm text-gray-600">XLM Balance</p>
             <p className="text-2xl font-bold text-blue-600">
               {loading ? '...' : xlmBalance.toFixed(2)}
             </p>
           </div>
           <div className="bg-purple-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Balance TUR</p>
+            <p className="text-sm text-gray-600">TUR Balance</p>
             <p className="text-2xl font-bold text-purple-600">
               {loading ? '...' : turBalance.toFixed(2)}
             </p>
@@ -103,7 +103,7 @@ export default function Profile() {
             </p>
           </div>
           <div className="bg-orange-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Compras Realizadas</p>
+            <p className="text-sm text-gray-600">Purchases Made</p>
             <p className="text-2xl font-bold text-orange-600">
               {loadingHistory ? '...' : purchaseHistory.length}
             </p>
@@ -113,16 +113,16 @@ export default function Profile() {
         {/* Purchase History */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            💳 Historial de Compras
+            💳 Purchase History
           </h2>
           
           {loadingHistory ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">Cargando historial...</p>
+              <p className="text-gray-500">Loading history...</p>
             </div>
           ) : purchaseHistory.length === 0 ? (
             <div className="bg-gray-50 rounded-lg p-8 text-center">
-              <p className="text-gray-500">Aún no has realizado ninguna compra</p>
+              <p className="text-gray-500">You haven't made any purchases yet.</p>
             </div>
           ) : (
             <div className="space-y-3">
