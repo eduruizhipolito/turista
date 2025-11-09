@@ -1,6 +1,6 @@
 # Turista 🌍
 
-Plataforma de turismo que recompensa visitas a lugares turísticos con NFTs únicos y tokens TUR, utilizables en un marketplace de productos y servicios locales.
+Plataforma de turismo que recompensa visitas a lugares turísticos con NFTs únicos y tokens TUR, utilizables en un marketplace de productos y servicios de comerciantes locales.
 
 ## Stack Tecnológico
 

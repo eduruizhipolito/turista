@@ -17,7 +17,7 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [userNFTs, setUserNFTs] = useState<ICheckinNFT[]>([]);
   const [, setLoadingNFTs] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; txHash?: string } | null>(null);
   
   const { publicKey, isConnected, kit } = useWallet();
   const { latitude, longitude, loading: geoLoading } = useGeolocation(
@@ -93,7 +93,11 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
       });
 
       if (result.success) {
-        setToast({ message: `¡Check-in exitoso en ${place.name}! NFT minteado`, type: 'success' });
+        setToast({ 
+          message: `¡Check-in exitoso en ${place.name}! NFT minteado`, 
+          type: 'success',
+          txHash: result.txHash 
+        });
         setShowModal(false);
         await loadUserNFTs();
       } else {
@@ -243,15 +247,29 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
         <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
           <div className={`${
             toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          } text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md`}>
-            <span className="text-2xl">{toast.type === 'success' ? '✅' : '❌'}</span>
-            <p className="flex-1 font-medium">{toast.message}</p>
-            <button
-              onClick={() => setToast(null)}
-              className="text-white/80 hover:text-white text-xl font-bold leading-none"
-            >
-              ×
-            </button>
+          } text-white px-6 py-4 rounded-lg shadow-2xl min-w-[300px] max-w-md`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{toast.type === 'success' ? '✅' : '❌'}</span>
+              <p className="flex-1 font-medium">{toast.message}</p>
+              <button
+                onClick={() => setToast(null)}
+                className="text-white/80 hover:text-white text-xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+            {toast.type === 'success' && toast.txHash && (
+              <div className="ml-9 mt-2">
+                <a
+                  href={`https://stellar.expert/explorer/testnet/tx/${toast.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-white/90 hover:text-white underline inline-flex items-center gap-1"
+                >
+                  Ver detalles ↗️
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}

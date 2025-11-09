@@ -12,7 +12,7 @@ export default function Marketplace() {
   const [useDiscount, setUseDiscount] = useState(false)
   const [balances, setBalances] = useState({ xlm: 0, tur: 0 })
   const [loadingBalances, setLoadingBalances] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; txHash?: string } | null>(null)
 
   useEffect(() => {
     if (selectedProduct && publicKey) {
@@ -45,6 +45,36 @@ export default function Marketplace() {
     try {
       let result
       if (withDiscount) {
+        // Check if we need to approve first
+        console.log('🔍 Checking allowance...')
+        const currentAllowance = await marketplaceService.checkAllowance(publicKey)
+        
+        if (currentAllowance < product.priceDiscountTUR) {
+          console.log('⚠️ Insufficient allowance, requesting approval...')
+          setToast({ 
+            message: 'Aprobando marketplace para quemar TUR tokens...', 
+            type: 'success' 
+          })
+          
+          // Request approval for a large amount (e.g., 100,000 TUR) to avoid multiple approvals
+          const approveResult = await marketplaceService.approveTUR(
+            kit,
+            publicKey,
+            100000 // Approve 100k TUR tokens
+          )
+          
+          if (!approveResult.success) {
+            setToast({ message: `Error al aprobar: ${approveResult.error}`, type: 'error' })
+            return
+          }
+          
+          console.log('✅ Approval successful!')
+          setToast({ 
+            message: '✅ Aprobación exitosa. Procesando compra...', 
+            type: 'success' 
+          })
+        }
+        
         result = await marketplaceService.purchaseWithDiscount(
           kit,
           publicKey,
@@ -62,7 +92,11 @@ export default function Marketplace() {
       }
 
       if (result.success) {
-        setToast({ message: `¡Compra exitosa de ${product.name}!`, type: 'success' })
+        setToast({ 
+          message: `¡Compra exitosa de ${product.name}!`, 
+          type: 'success',
+          txHash: result.txHash
+        })
         setSelectedProduct(null)
         
         // Reload balances after successful purchase
@@ -207,7 +241,7 @@ export default function Marketplace() {
                 <div className="bg-green-50 p-4 rounded-lg">
                   <p className="font-semibold text-green-800 mb-2">Con Descuento TUR</p>
                   <p className="text-sm">Pagarás: <span className="font-bold">{selectedProduct.priceDiscountXLM} XLM</span></p>
-                  <p className="text-sm">Se quemarán: <span className="font-bold">{selectedProduct.priceDiscountTUR} TUR</span></p>
+                  <p className="text-sm">Consumirás: <span className="font-bold">{selectedProduct.priceDiscountTUR} TUR</span></p>
                   
                   {/* Validación de saldo */}
                   {!loadingBalances && (
@@ -265,15 +299,29 @@ export default function Marketplace() {
         <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
           <div className={`${
             toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          } text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md`}>
-            <span className="text-2xl">{toast.type === 'success' ? '✅' : '❌'}</span>
-            <p className="flex-1 font-medium">{toast.message}</p>
-            <button
-              onClick={() => setToast(null)}
-              className="text-white/80 hover:text-white text-xl font-bold leading-none"
-            >
-              ×
-            </button>
+          } text-white px-6 py-4 rounded-lg shadow-2xl min-w-[300px] max-w-md`}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl">{toast.type === 'success' ? '✅' : '❌'}</span>
+              <p className="flex-1 font-medium">{toast.message}</p>
+              <button
+                onClick={() => setToast(null)}
+                className="text-white/80 hover:text-white text-xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+            {toast.type === 'success' && toast.txHash && (
+              <div className="ml-9">
+                <a
+                  href={`https://stellar.expert/explorer/testnet/tx/${toast.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-white/90 hover:text-white underline inline-flex items-center gap-1"
+                >
+                  Ver detalles ↗️
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -46,7 +46,7 @@ class CheckinService {
     kit: StellarWalletsKit,
     userAddress: string,
     params: CheckinParams
-  ): Promise<{ success: boolean; tokenId?: bigint; error?: string }> {
+  ): Promise<{ success: boolean; tokenId?: bigint; error?: string; txHash?: string }> {
     try {
       if (!CHECKIN_CONTRACT_ID) {
         throw new Error('Contract ID not configured')
@@ -116,6 +116,7 @@ class CheckinService {
       return {
         success: true,
         tokenId: BigInt(0),
+        txHash: sentTx.hash,
       }
     } catch (error) {
       console.error('Check-in error:', error)

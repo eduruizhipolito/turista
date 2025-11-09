@@ -7,8 +7,7 @@ import {
   BASE_FEE,
   Address,
   nativeToScVal,
-  Operation,
-  Asset
+  scValToNative
 } from '@stellar/stellar-sdk'
 
 const MARKETPLACE_CONTRACT_ID = import.meta.env.VITE_MARKETPLACE_CONTRACT || ''
@@ -24,92 +23,69 @@ class MarketplaceService {
   }
 
   /**
-   * Compra con XLM solamente
+   * Compra con XLM solamente - Llama al contrato marketplace
    */
   async purchaseWithXLM(
     kit: StellarWalletsKit,
     buyerAddress: string,
     merchantAddress: string,
     amountXLM: number
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; txHash?: string }> {
     try {
       if (!MARKETPLACE_CONTRACT_ID) {
         throw new Error('Marketplace contract ID not configured')
       }
 
+      console.log('🛒 Calling marketplace contract for XLM purchase...')
+      console.log('💰 XLM amount:', amountXLM, '(raw:', Math.floor(amountXLM * 1e7), ')')
+      
       const account = await this.rpcServer.getAccount(buyerAddress)
-      const contract = new Contract(MARKETPLACE_CONTRACT_ID)
-
-      // Convert parameters
-      const buyerScVal = Address.fromString(buyerAddress).toScVal()
-      const merchantScVal = Address.fromString(merchantAddress).toScVal()
-      const amountScVal = nativeToScVal(Math.floor(amountXLM * 1e7), { type: 'i128' })
-
-      // Build transaction
+      const marketplaceContract = new Contract(MARKETPLACE_CONTRACT_ID)
+      
+      // Build transaction calling purchase_with_xlm
       const transaction = new TransactionBuilder(account, {
         fee: BASE_FEE,
         networkPassphrase: NETWORK_PASSPHRASE,
       })
         .addOperation(
-          contract.call('purchase_with_xlm', buyerScVal, merchantScVal, amountScVal)
+          marketplaceContract.call(
+            'purchase_with_xlm',
+            Address.fromString(buyerAddress).toScVal(),
+            Address.fromString(merchantAddress).toScVal(),
+            nativeToScVal(Math.floor(amountXLM * 1e7), { type: 'i128' })
+          )
         )
         .setTimeout(30)
         .build()
 
-      // Simulate
+      console.log('🔍 Simulating marketplace transaction...')
       const simulated = await this.rpcServer.simulateTransaction(transaction)
-
+      
       if (SorobanRpc.Api.isSimulationError(simulated)) {
+        console.error('❌ Simulation failed:', simulated.error)
         throw new Error(`Simulation failed: ${simulated.error}`)
       }
 
-      // Prepare
+      console.log('✅ Simulation successful, preparing transaction...')
       const prepared = SorobanRpc.assembleTransaction(transaction, simulated).build()
 
-      // Sign
+      console.log('✍️ Requesting signature...')
       const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), {
         address: buyerAddress,
         networkPassphrase: NETWORK_PASSPHRASE,
       })
 
-      // Send
+      console.log('📤 Sending transaction...')
       const signedTx = TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE)
-      const sentTx = await this.rpcServer.sendTransaction(signedTx)
-
-      // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 3000))
-
-      console.log('✅ Marketplace contract called! Hash:', sentTx.hash)
+      const sendResult = await this.rpcServer.sendTransaction(signedTx)
       
-      // Now transfer XLM from buyer to merchant
-      console.log('💰 Transferring XLM to merchant...')
-      const paymentAccount = await this.rpcServer.getAccount(buyerAddress)
+      console.log('✅ Transaction sent! Hash:', sendResult.hash)
+      console.log('🔗 View on explorer: https://stellar.expert/explorer/testnet/tx/' + sendResult.hash)
       
-      const paymentTx = new TransactionBuilder(paymentAccount, {
-        fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          Operation.payment({
-            destination: merchantAddress,
-            asset: Asset.native(),
-            amount: amountXLM.toString(),
-          })
-        )
-        .setTimeout(30)
-        .build()
-
-      const { signedTxXdr: paymentSignedXdr } = await kit.signTransaction(paymentTx.toXDR(), {
-        address: buyerAddress,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-
-      const paymentSignedTx = TransactionBuilder.fromXDR(paymentSignedXdr, NETWORK_PASSPHRASE)
-      const paymentResult = await this.rpcServer.sendTransaction(paymentSignedTx)
-      
-      console.log('✅ Payment successful! Hash:', paymentResult.hash)
-      
-      return { success: true }
+      return { 
+        success: true,
+        txHash: sendResult.hash
+      }
     } catch (error) {
       console.error('Purchase error:', error)
       return {
@@ -120,7 +96,7 @@ class MarketplaceService {
   }
 
   /**
-   * Compra con descuento usando TUR tokens
+   * Compra con descuento usando TUR tokens - Llama al contrato marketplace
    */
   async purchaseWithDiscount(
     kit: StellarWalletsKit,
@@ -128,145 +104,198 @@ class MarketplaceService {
     merchantAddress: string,
     amountXLM: number,
     amountTUR: number
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; txHash?: string }> {
     try {
       if (!MARKETPLACE_CONTRACT_ID) {
         throw new Error('Marketplace contract ID not configured')
       }
 
+      console.log('🛒 Calling marketplace contract for purchase with discount...')
+      console.log('💰 XLM amount:', amountXLM, '(raw:', Math.floor(amountXLM * 1e7), ')')
+      console.log('🔥 TUR to burn:', amountTUR, '(raw:', Math.floor(amountTUR * 1e7), ')')
+      
       const account = await this.rpcServer.getAccount(buyerAddress)
-      const contract = new Contract(MARKETPLACE_CONTRACT_ID)
-
-      // Convert parameters
-      const buyerScVal = Address.fromString(buyerAddress).toScVal()
-      const merchantScVal = Address.fromString(merchantAddress).toScVal()
-      const amountXLMScVal = nativeToScVal(Math.floor(amountXLM * 1e7), { type: 'i128' })
-      const amountTURScVal = nativeToScVal(Math.floor(amountTUR * 1e7), { type: 'i128' })
-
-      // Build transaction
+      const marketplaceContract = new Contract(MARKETPLACE_CONTRACT_ID)
+      
+      // Build transaction calling purchase_with_discount
       const transaction = new TransactionBuilder(account, {
         fee: BASE_FEE,
         networkPassphrase: NETWORK_PASSPHRASE,
       })
         .addOperation(
-          contract.call(
+          marketplaceContract.call(
             'purchase_with_discount',
-            buyerScVal,
-            merchantScVal,
-            amountXLMScVal,
-            amountTURScVal
-          )
-        )
-        .setTimeout(30)
-        .build()
-
-      // Simulate
-      const simulated = await this.rpcServer.simulateTransaction(transaction)
-
-      if (SorobanRpc.Api.isSimulationError(simulated)) {
-        throw new Error(`Simulation failed: ${simulated.error}`)
-      }
-
-      // Prepare
-      const prepared = SorobanRpc.assembleTransaction(transaction, simulated).build()
-
-      // Sign
-      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), {
-        address: buyerAddress,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-
-      // Send
-      const signedTx = TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE)
-      const sentTx = await this.rpcServer.sendTransaction(signedTx)
-
-      // Wait for contract execution
-      await new Promise(resolve => setTimeout(resolve, 3000))
-
-      console.log('✅ Contract call successful! Hash:', sentTx.hash)
-      
-      // Now execute the actual XLM transfer and TUR burn
-      console.log('💸 Transferring XLM to merchant...')
-      
-      // 1. Transfer XLM to merchant
-      const xlmAccount = await this.rpcServer.getAccount(buyerAddress)
-      const xlmTransaction = new TransactionBuilder(xlmAccount, {
-        fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          Operation.payment({
-            destination: merchantAddress,
-            asset: Asset.native(),
-            amount: amountXLM.toString(), // Amount in XLM
-          })
-        )
-        .setTimeout(30)
-        .build()
-
-      const { signedTxXdr: xlmSignedXdr } = await kit.signTransaction(xlmTransaction.toXDR(), {
-        address: buyerAddress,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-
-      const xlmSignedTx = TransactionBuilder.fromXDR(xlmSignedXdr, NETWORK_PASSPHRASE)
-      await this.rpcServer.sendTransaction(xlmSignedTx)
-      
-      console.log('✅ XLM transferred')
-
-      // 2. Burn TUR tokens
-      console.log('🔥 Burning TUR tokens...')
-      console.log('💰 Amount to burn:', amountTUR, 'TUR')
-      console.log('💰 Amount in raw units:', Math.floor(amountTUR * 1e7))
-      
-      const turContract = new Contract(TUR_CONTRACT_ID)
-      const turAccount = await this.rpcServer.getAccount(buyerAddress)
-      
-      const turTransaction = new TransactionBuilder(turAccount, {
-        fee: BASE_FEE,
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          turContract.call(
-            'burn',
             Address.fromString(buyerAddress).toScVal(),
+            Address.fromString(merchantAddress).toScVal(),
+            nativeToScVal(Math.floor(amountXLM * 1e7), { type: 'i128' }),
             nativeToScVal(Math.floor(amountTUR * 1e7), { type: 'i128' })
           )
         )
         .setTimeout(30)
         .build()
 
-      console.log('🔍 Simulating TUR burn transaction...')
-      const turSimulated = await this.rpcServer.simulateTransaction(turTransaction)
+      console.log('🔍 Simulating marketplace transaction...')
+      const simulated = await this.rpcServer.simulateTransaction(transaction)
       
-      if (SorobanRpc.Api.isSimulationError(turSimulated)) {
-        console.error('❌ TUR burn simulation failed:', turSimulated.error)
-        throw new Error('Failed to burn TUR tokens')
+      if (SorobanRpc.Api.isSimulationError(simulated)) {
+        console.error('❌ Simulation failed:', simulated.error)
+        throw new Error(`Simulation failed: ${simulated.error}`)
       }
 
       console.log('✅ Simulation successful, preparing transaction...')
-      const turPrepared = SorobanRpc.assembleTransaction(turTransaction, turSimulated).build()
+      const prepared = SorobanRpc.assembleTransaction(transaction, simulated).build()
 
-      console.log('✍️ Requesting signature for TUR burn...')
-      const { signedTxXdr: turSignedXdr } = await kit.signTransaction(turPrepared.toXDR(), {
+      console.log('✍️ Requesting signature...')
+      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), {
         address: buyerAddress,
         networkPassphrase: NETWORK_PASSPHRASE,
       })
 
-      console.log('📤 Sending TUR burn transaction...')
-      const turSignedTx = TransactionBuilder.fromXDR(turSignedXdr, NETWORK_PASSPHRASE)
-      const turResult = await this.rpcServer.sendTransaction(turSignedTx)
+      console.log('📤 Sending transaction...')
+      const signedTx = TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE)
+      const sendResult = await this.rpcServer.sendTransaction(signedTx)
       
-      console.log('✅ TUR burn transaction sent! Hash:', turResult.hash)
-      console.log('🎉 Purchase with discount completed successfully!')
+      console.log('✅ Transaction sent! Hash:', sendResult.hash)
+      console.log('🔗 View on explorer: https://stellar.expert/explorer/testnet/tx/' + sendResult.hash)
       
-      return { success: true }
+      return { 
+        success: true,
+        txHash: sendResult.hash
+      }
     } catch (error) {
       console.error('Purchase error:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       }
+    }
+  }
+
+  /**
+   * Aprobar al marketplace para quemar tokens TUR
+   */
+  async approveTUR(
+    kit: StellarWalletsKit,
+    ownerAddress: string,
+    amount: number
+  ): Promise<{ success: boolean; error?: string; txHash?: string }> {
+    try {
+      if (!TUR_CONTRACT_ID || !MARKETPLACE_CONTRACT_ID) {
+        throw new Error('TUR or Marketplace contract ID not configured')
+      }
+
+      console.log('✅ Approving marketplace to burn TUR tokens...')
+      console.log('💰 Amount to approve:', amount, '(raw:', Math.floor(amount * 1e7), ')')
+      
+      const account = await this.rpcServer.getAccount(ownerAddress)
+      const turContract = new Contract(TUR_CONTRACT_ID)
+      
+      // Build transaction calling approve
+      const transaction = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          turContract.call(
+            'approve',
+            Address.fromString(ownerAddress).toScVal(),
+            Address.fromString(MARKETPLACE_CONTRACT_ID).toScVal(),
+            nativeToScVal(Math.floor(amount * 1e7), { type: 'i128' })
+          )
+        )
+        .setTimeout(30)
+        .build()
+
+      console.log('🔍 Simulating approve transaction...')
+      const simulated = await this.rpcServer.simulateTransaction(transaction)
+      
+      if (SorobanRpc.Api.isSimulationError(simulated)) {
+        console.error('❌ Simulation failed:', simulated.error)
+        throw new Error(`Simulation failed: ${simulated.error}`)
+      }
+
+      console.log('✅ Simulation successful, preparing transaction...')
+      const prepared = SorobanRpc.assembleTransaction(transaction, simulated).build()
+
+      console.log('✍️ Requesting signature...')
+      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), {
+        address: ownerAddress,
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+
+      console.log('📤 Sending transaction...')
+      const signedTx = TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE)
+      const sendResult = await this.rpcServer.sendTransaction(signedTx)
+      
+      console.log('✅ Approval transaction sent! Hash:', sendResult.hash)
+      
+      return { 
+        success: true,
+        txHash: sendResult.hash
+      }
+    } catch (error) {
+      console.error('Approval error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  /**
+   * Verificar allowance actual
+   */
+  async checkAllowance(
+    ownerAddress: string
+  ): Promise<number> {
+    try {
+      if (!TUR_CONTRACT_ID || !MARKETPLACE_CONTRACT_ID) {
+        throw new Error('TUR or Marketplace contract ID not configured')
+      }
+
+      const turContract = new Contract(TUR_CONTRACT_ID)
+      const account = await this.rpcServer.getAccount(ownerAddress)
+      
+      const transaction = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          turContract.call(
+            'allowance',
+            Address.fromString(ownerAddress).toScVal(),
+            Address.fromString(MARKETPLACE_CONTRACT_ID).toScVal()
+          )
+        )
+        .setTimeout(30)
+        .build()
+
+      const simulated = await this.rpcServer.simulateTransaction(transaction)
+      
+      if (SorobanRpc.Api.isSimulationError(simulated)) {
+        console.error('❌ Failed to check allowance:', simulated.error)
+        return 0
+      }
+
+      // Parse the result - ScVal i128
+      const result = simulated.result?.retval
+      if (result) {
+        try {
+          // Use scValToNative to convert ScVal to native JavaScript value
+          const allowanceRaw = scValToNative(result)
+          const allowance = Number(allowanceRaw) / 1e7
+          console.log('📊 Current allowance:', allowance, 'TUR (raw:', allowanceRaw.toString(), ')')
+          return allowance
+        } catch (e) {
+          console.error('Error parsing allowance:', e, 'Result:', result)
+          return 0
+        }
+      }
+
+      return 0
+    } catch (error) {
+      console.error('Error checking allowance:', error)
+      return 0
     }
   }
 }

@@ -16,7 +16,7 @@ export default function MapView() {
   const [checkingIn, setCheckingIn] = useState(false)
   const [userNFTs, setUserNFTs] = useState<ICheckinNFT[]>([])
   const [, setLoadingNFTs] = useState(false)
-  const [, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; txHash?: string } | null>(null)
   
   const { publicKey, isConnected, kit } = useWallet()
   const { latitude, longitude, error, loading } = useGeolocation(
@@ -98,7 +98,11 @@ export default function MapView() {
       })
 
       if (result.success) {
-        setToast({ message: `¡Check-in exitoso en ${place.name}! NFT minteado`, type: 'success' })
+        setToast({ 
+          message: `¡Check-in exitoso en ${place.name}! NFT minteado`, 
+          type: 'success',
+          txHash: result.txHash 
+        })
         setSelectedPlace(null)
         // Recargar NFTs después del check-in exitoso
         await loadUserNFTs()
@@ -261,6 +265,36 @@ export default function MapView() {
         </APIProvider>
       </div>
 
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
+          <div className={`${
+            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white px-6 py-4 rounded-lg shadow-lg max-w-md`}>
+            <div className="flex items-start justify-between">
+              <p className="text-sm font-medium pr-4">{toast.message}</p>
+              <button
+                onClick={() => setToast(null)}
+                className="text-white hover:text-gray-200 font-bold text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            {toast.type === 'success' && toast.txHash && (
+              <div className="mt-2">
+                <a
+                  href={`https://stellar.expert/explorer/testnet/tx/${toast.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-white hover:text-gray-200 underline flex items-center gap-1"
+                >
+                  Ver detalles ↗️
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

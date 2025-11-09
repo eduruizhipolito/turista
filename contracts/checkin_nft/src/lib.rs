@@ -1,6 +1,8 @@
 #![no_std]
 
-use soroban_sdk::{Address, Env, IntoVal, String, Symbol, Vec, contract, contracterror, contractimpl, contracttype, symbol_short};
+use soroban_sdk::{Address, Env, IntoVal, String, Symbol, Vec, contract, contractimpl, contracttype, symbol_short};
+mod error;
+pub use error::Error;
 
 // NFT data structure
 #[contracttype]
@@ -27,17 +29,6 @@ pub enum DataKey {
     Admin,                              // Admin address
 }
 
-// Error types
-#[contracterror]
-#[derive(Clone, Debug, Copy, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum Error {
-    AlreadyCheckedIn = 100,
-    InvalidPlaceId = 101,
-    NFTNotTransferable = 102,
-    TokenNotFound = 103,
-    Unauthorized = 104,
-}
 
 #[contract]
 pub struct CheckinNFTContract;
@@ -220,7 +211,7 @@ mod test {
     #[test]
     fn test_initialize() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, CheckinNFTContract);
+        let contract_id = env.register(CheckinNFTContract {}, ());
         let client = CheckinNFTContractClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -237,7 +228,7 @@ mod test {
         env.mock_all_auths_allowing_non_root_auth();
 
         // Register and initialize TUR token contract
-        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_contract_id = env.register(tur_token::WASM, ());
         let tur_client = tur_token::Client::new(&env, &tur_contract_id);
         let admin = Address::generate(&env);
         tur_client.initialize(
@@ -249,7 +240,7 @@ mod test {
         );
 
         // Register CheckinNFT contract
-        let contract_id = env.register_contract(None, CheckinNFTContract);
+        let contract_id = env.register(CheckinNFTContract {}, ());
         let client = CheckinNFTContractClient::new(&env, &contract_id);
         let user = Address::generate(&env);
 
@@ -289,7 +280,7 @@ mod test {
         env.mock_all_auths_allowing_non_root_auth();
 
         // Register and initialize TUR token contract
-        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_contract_id = env.register(tur_token::WASM, ());
         let tur_client = tur_token::Client::new(&env, &tur_contract_id);
         let admin = Address::generate(&env);
         tur_client.initialize(
@@ -301,7 +292,7 @@ mod test {
         );
 
         // Register CheckinNFT contract
-        let contract_id = env.register_contract(None, CheckinNFTContract);
+        let contract_id = env.register(CheckinNFTContract {}, ());
         let client = CheckinNFTContractClient::new(&env, &contract_id);
         let user = Address::generate(&env);
 
@@ -330,7 +321,7 @@ mod test {
         env.mock_all_auths_allowing_non_root_auth();
 
         // Register and initialize TUR token contract
-        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_contract_id = env.register(tur_token::WASM, ());
         let tur_client = tur_token::Client::new(&env, &tur_contract_id);
         let admin = Address::generate(&env);
         tur_client.initialize(
@@ -342,7 +333,7 @@ mod test {
         );
 
         // Register CheckinNFT contract
-        let contract_id = env.register_contract(None, CheckinNFTContract);
+        let contract_id = env.register(CheckinNFTContract {}, ());
         let client = CheckinNFTContractClient::new(&env, &contract_id);
         let user1 = Address::generate(&env);
         let user2 = Address::generate(&env);
@@ -373,7 +364,7 @@ mod test {
         env.mock_all_auths_allowing_non_root_auth();
 
         // Register and initialize TUR token contract
-        let tur_contract_id = env.register_contract_wasm(None, tur_token::WASM);
+        let tur_contract_id = env.register(tur_token::WASM, ());
         let tur_client = tur_token::Client::new(&env, &tur_contract_id);
         let admin = Address::generate(&env);
         tur_client.initialize(
@@ -385,7 +376,7 @@ mod test {
         );
 
         // Register CheckinNFT contract
-        let contract_id = env.register_contract(None, CheckinNFTContract);
+        let contract_id = env.register(CheckinNFTContract {}, ());
         let client = CheckinNFTContractClient::new(&env, &contract_id);
         let user = Address::generate(&env);
 

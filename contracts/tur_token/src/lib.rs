@@ -1,6 +1,8 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, contracterror, Address, Env, String, symbol_short};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, symbol_short};
+mod error;
+pub use error::Error;
 
 // Storage keys
 #[contracttype]
@@ -13,17 +15,9 @@ pub enum DataKey {
     Decimals,
     Admin,
     AuthorizedMinter(Address),
+    Allowance(Address, Address), // (owner, spender) -> amount
 }
 
-// Error types
-#[contracterror]
-#[derive(Clone, Debug, Copy, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum Error {
-    InsufficientBalance = 200,
-    UnauthorizedBurn = 201,
-    Unauthorized = 202,
-}
 
 #[contract]
 pub struct TurToken;
@@ -302,6 +296,113 @@ impl TurToken {
 
         Ok(())
     }
+
+    /// Approve a spender to burn tokens on behalf of the owner
+    pub fn approve(
+        env: Env,
+        owner: Address,
+        spender: Address,
+        amount: i128,
+    ) -> Result<(), Error> {
+        // Require owner authentication
+        owner.require_auth();
+
+        // Validate amount
+        if amount < 0 {
+            return Err(Error::InsufficientBalance);
+        }
+
+        // Set allowance
+        env.storage()
+            .instance()
+            .set(&DataKey::Allowance(owner.clone(), spender.clone()), &amount);
+
+        // Emit event
+        env.events().publish(
+            (symbol_short!("approve"), owner, spender),
+            amount,
+        );
+
+        Ok(())
+    }
+
+    /// Get allowance amount
+    pub fn allowance(
+        env: Env,
+        owner: Address,
+        spender: Address,
+    ) -> i128 {
+        env.storage()
+            .instance()
+            .get(&DataKey::Allowance(owner, spender))
+            .unwrap_or(0)
+    }
+
+    /// Burn tokens from an address using allowance
+    pub fn burn_from(
+        env: Env,
+        spender: Address,
+        from: Address,
+        amount: i128,
+    ) -> Result<(), Error> {
+        // Require spender authentication
+        spender.require_auth();
+
+        // Validate amount
+        if amount < 0 {
+            return Err(Error::InsufficientBalance);
+        }
+
+        // Check allowance
+        let allowance = Self::allowance(env.clone(), from.clone(), spender.clone());
+        if allowance < amount {
+            return Err(Error::InsufficientBalance);
+        }
+
+        // Get balance
+        let balance = Self::balance(env.clone(), from.clone());
+
+        // Check sufficient balance
+        if balance < amount {
+            return Err(Error::InsufficientBalance);
+        }
+
+        // Update balance
+        let new_balance = balance
+            .checked_sub(amount)
+            .ok_or(Error::InsufficientBalance)?;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::Balance(from.clone()), &new_balance);
+
+        // Update total supply
+        let total_supply = Self::total_supply(env.clone());
+        let new_total_supply = total_supply
+            .checked_sub(amount)
+            .ok_or(Error::InsufficientBalance)?;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &new_total_supply);
+
+        // Update allowance
+        let new_allowance = allowance
+            .checked_sub(amount)
+            .ok_or(Error::InsufficientBalance)?;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::Allowance(from.clone(), spender.clone()), &new_allowance);
+
+        // Emit event
+        env.events().publish(
+            (symbol_short!("burn_frm"), spender, from),
+            amount,
+        );
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -312,7 +413,7 @@ mod test {
     #[test]
     fn test_initialize() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, TurToken);
+        let contract_id = env.register(TurToken {}, ());
         let client = TurTokenClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -335,7 +436,7 @@ mod test {
         let env = Env::default();
         env.mock_all_auths();
 
-        let contract_id = env.register_contract(None, TurToken);
+        let contract_id = env.register(TurToken {}, ());
         let client = TurTokenClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
@@ -362,7 +463,7 @@ mod test {
         let env = Env::default();
         env.mock_all_auths();
 
-        let contract_id = env.register_contract(None, TurToken);
+        let contract_id = env.register(TurToken {}, ());
         let client = TurTokenClient::new(&env, &contract_id);
 
         let admin = Address::generate(&env);
