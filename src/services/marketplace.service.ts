@@ -23,6 +23,38 @@ class MarketplaceService {
   }
 
   /**
+   * Wait for transaction confirmation
+   */
+  private async waitForTransaction(txHash: string, maxAttempts = 30): Promise<boolean> {
+    console.log('⏳ Waiting for transaction confirmation...')
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const txResponse = await this.rpcServer.getTransaction(txHash)
+        
+        if (txResponse.status === 'SUCCESS') {
+          console.log('✅ Transaction confirmed!')
+          return true
+        }
+        
+        if (txResponse.status === 'FAILED') {
+          console.error('❌ Transaction failed:', txResponse)
+          return false
+        }
+        
+        // Transaction is still pending, wait and retry
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      } catch (error) {
+        // Transaction not found yet, continue waiting
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+    
+    console.error('⏰ Transaction confirmation timeout')
+    return false
+  }
+
+  /**
    * Compra con XLM solamente - Llama al contrato marketplace
    */
   async purchaseWithXLM(
@@ -228,6 +260,13 @@ class MarketplaceService {
       const sendResult = await this.rpcServer.sendTransaction(signedTx)
       
       console.log('✅ Approval transaction sent! Hash:', sendResult.hash)
+      
+      // Wait for confirmation
+      const confirmed = await this.waitForTransaction(sendResult.hash)
+      
+      if (!confirmed) {
+        throw new Error('Approval transaction failed or timed out')
+      }
       
       return { 
         success: true,
