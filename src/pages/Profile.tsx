@@ -173,13 +173,13 @@ export default function Profile() {
                           <span className="text-lg">🛒</span>
                           <div>
                             <p className="font-semibold text-gray-800">
-                              Compra realizada - {productName}
+                              Purchase made - {productName}
                             </p>
                             <p className="text-xs text-gray-500">{merchantName}</p>
                           </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-2">
-                          {new Date(purchase.created_at).toLocaleString('es-ES', {
+                          {new Date(purchase.created_at).toLocaleString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -190,7 +190,7 @@ export default function Profile() {
                         {purchase.hasDiscount && (
                           <div className="mt-2">
                             <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                              ✨ Compra con dscto.
+                              ✨ Buy with discount.
                             </span>
                           </div>
                         )}                        
@@ -217,7 +217,7 @@ export default function Profile() {
                           rel="noopener noreferrer"
                           className="text-xs text-blue-500 hover:text-blue-700 underline mt-2 inline-block"
                         >
-                          Ver en blockchain ↗️
+                          See details ↗️
                         </a>
                       </div>
                     </div>
