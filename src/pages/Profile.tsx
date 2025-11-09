@@ -53,10 +53,10 @@ export default function Profile() {
     return (
       <div className="bg-white rounded-lg shadow-lg p-8 text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          👤 Mi Perfil
+          👤 My Profile
         </h1>
         <p className="text-gray-600">
-          Conecta tu wallet para ver tu perfil.
+          Connect your wallet to view your profile.
         </p>
       </div>
     )
@@ -65,7 +65,7 @@ export default function Profile() {
   return (
     <div className="bg-white rounded-lg shadow-lg p-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        👤 Mi Perfil
+        👤 My Profile
       </h1>
       
       <div className="space-y-4">
@@ -97,7 +97,7 @@ export default function Profile() {
             </p>
           </div>
           <div className="bg-green-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">NFTs Coleccionados</p>
+            <p className="text-sm text-gray-600">NFTs Collected</p>
             <p className="text-2xl font-bold text-green-600">
               {loading ? '...' : nftCount}
             </p>

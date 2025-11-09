@@ -42,9 +42,9 @@ export default function Collection() {
     return (
       <div className="p-6">
         <div className="max-w-2xl mx-auto text-center py-12">
-          <h1 className="text-3xl font-bold mb-4">📦 Mi Colección de Check-ins</h1>
+          <h1 className="text-3xl font-bold mb-4">📦 My Check-in Collection</h1>
           <p className="text-gray-600 mb-6">
-            Conecta tu wallet para ver tu colección de Check-ins
+            Connect your wallet to view your Check-in collection
           </p>
           <div className="text-6xl mb-4">🔒</div>
         </div>
@@ -55,9 +55,9 @@ export default function Collection() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">📦 Mi Colección de NFTs</h1>
+        <h1 className="text-3xl font-bold mb-2">📦 My NFT Collection</h1>
         <p className="text-gray-600">
-          {nfts.length} {nfts.length === 1 ? 'NFT coleccionado' : 'NFTs coleccionados'}
+          {nfts.length} {nfts.length === 1 ? 'NFT collected' : 'NFTs collected'}
         </p>
       </div>
 
@@ -69,9 +69,9 @@ export default function Collection() {
       ) : nfts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <div className="text-6xl mb-4">🗺️</div>
-          <h2 className="text-xl font-semibold mb-2">No tienes NFTs aún</h2>
+          <h2 className="text-xl font-semibold mb-2">You don't have NFTs yet</h2>
           <p className="text-gray-600 mb-6">
-            Visita lugares turísticos y haz check-in para coleccionar NFTs
+            Visit tourist places and check-in to collect NFTs
           </p>
           <a
             href="/"

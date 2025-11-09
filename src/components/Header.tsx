@@ -13,9 +13,9 @@ export default function Header() {
   const navLinks = (
     <>
       <Link to="/check-in" className="text-purple-700 hover:text-purple-900 font-medium transition block py-2 md:py-0">Check-in</Link>
-      <Link to="/collection" className="text-purple-700 hover:text-purple-900 font-medium transition block py-2 md:py-0">Mi Colección</Link>
+      <Link to="/collection" className="text-purple-700 hover:text-purple-900 font-medium transition block py-2 md:py-0">My Collection</Link>
       <Link to="/marketplace" className="text-purple-700 hover:text-purple-900 font-medium transition block py-2 md:py-0">Marketplace</Link>
-      <Link to="/profile" className="text-purple-700 hover:text-purple-900 font-medium transition block py-2 md:py-0">Perfil</Link>
+      <Link to="/profile" className="text-purple-700 hover:text-purple-900 font-medium transition block py-2 md:py-0">Profile</Link>
     </>
   )
 
@@ -57,7 +57,7 @@ export default function Header() {
                   disabled={isLoading}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 px-6 py-2 rounded-lg font-semibold transition disabled:opacity-50"
                 >
-                  {isLoading ? 'Conectando...' : 'Conectar Wallet'}
+                  {isLoading ? 'Connecting...' : 'Connect Wallet'}
                 </button>
               )}
             </div>
@@ -96,7 +96,7 @@ export default function Header() {
                   disabled={isLoading}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 w-full py-2 rounded-lg font-semibold transition disabled:opacity-50"
                 >
-                  {isLoading ? 'Conectando...' : 'Conectar Wallet'}
+                  {isLoading ? 'Connecting...' : 'Connect Wallet'}
                 </button>
               )}
             </div>

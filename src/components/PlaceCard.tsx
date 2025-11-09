@@ -64,12 +64,12 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
 
   const handleCheckin = useCallback(async () => {
     if (!isConnected || !publicKey || !kit) {
-      setToast({ message: 'Por favor conecta tu wallet primero', type: 'error' });
+      setToast({ message: 'Please connect your wallet first', type: 'error' });
       return;
     }
 
     if (!latitude || !longitude) {
-      setToast({ message: 'No se pudo obtener tu ubicación', type: 'error' });
+      setToast({ message: 'Could not get your location', type: 'error' });
       return;
     }
 
@@ -77,7 +77,7 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
 
     if (!withinRadius) {
       const distance = calculateDistance(latitude, longitude, place.lat, place.lng);
-      setToast({ message: `Estás muy lejos (${Math.round(distance)}m). Debes estar a menos de ${place.radius}m del lugar.`, type: 'error' });
+      setToast({ message: `You are too far (${Math.round(distance)}m). You must be within ${place.radius}m of the place.`, type: 'error' });
       return;
     }
 
@@ -105,7 +105,7 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
       }
     } catch (error) {
       console.error('Check-in error:', error);
-      setToast({ message: 'Error al hacer check-in. Intenta de nuevo.', type: 'error' });
+      setToast({ message: 'Check-in error. Please try again.', type: 'error' });
     } finally {
       setCheckingIn(false);
     }
@@ -125,7 +125,7 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
           <img src={place.imageNFT} alt={place.name} className="w-full h-48 object-cover" />
           {hasCheckedIn && (
             <div className="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-              ✓ Visitado
+              ✓ Visited
             </div>
           )}
         </div>
@@ -165,7 +165,7 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
               </button>
               {hasCheckedIn && (
                 <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                  ✓ Visitado
+                  ✓ Visited
                 </div>
               )}
             </div>
@@ -224,17 +224,17 @@ export default function PlaceCard({ place, demoMode }: PlaceCardProps) {
                     }`}
                   >
                     {geoLoading
-                      ? 'Obteniendo ubicación...'
+                      ? 'Getting location...'
                       : checkingIn
-                      ? '⏳ Haciendo Check-in...'
+                      ? '⏳ Checking in...'
                       : canCheckin
-                      ? '✓ Hacer Check-in'
-                      : `Debes estar a menos de ${place.radius}m   para hacer Check-In`}
+                      ? '✓ Check-in'
+                      : `You must be within ${place.radius}m to Check-In`}
                   </button>
                 )
               ) : (
                 <p className="text-sm text-gray-500 text-center py-3">
-                  Conecta tu wallet para hacer check-in
+                  Connect your wallet to check-in
                 </p>
               )}
             </div>

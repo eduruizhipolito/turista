@@ -15,7 +15,7 @@ export default function Home() {
       {/* Hero Section */}
       <div className="relative h-96 bg-cover bg-center" style={{ backgroundImage: `url(${MACHU_PICCHU_IMG})` }}>
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <h1 className="text-5xl font-bold text-white text-center">Descubre Latinoamérica</h1>
+          <h1 className="text-5xl font-bold text-white text-center">Discover Latin America</h1>
         </div>
       </div>
 
@@ -34,7 +34,7 @@ export default function Home() {
 
       {/* Place Gallery */}
       <div className="p-4 md:p-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">Lugares Turísticos</h2>
+        <h2 className="text-3xl font-bold text-gray-800 mb-6">Tourist Places</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {PLACES.map((place) => (
             <PlaceCard key={place.id} place={place} demoMode={demoMode} />
@@ -45,12 +45,12 @@ export default function Home() {
       {/* Products Gallery */}
       <div className="p-4 md:p-8 bg-gray-50">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold text-gray-800">Beneficios para Turistas</h2>
+          <h2 className="text-3xl font-bold text-gray-800">Tourist Benefits</h2>
           <Link 
             to="/marketplace"
             className="text-purple-600 hover:text-purple-800 font-medium text-sm flex items-center gap-1"
           >
-            Ver todos →
+            View all →
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -65,7 +65,7 @@ export default function Home() {
         to="/check-in"
         className="md:hidden fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-3 rounded-full shadow-lg font-semibold flex items-center gap-2"
       >
-        📍 Haz Check-in
+        📍 Check-in
       </Link>
     </div>
   );

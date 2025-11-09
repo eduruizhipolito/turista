@@ -68,12 +68,12 @@ export default function MapView() {
 
   const handleCheckin = useCallback(async (place: IPlace) => {
     if (!isConnected || !publicKey || !kit) {
-      setToast({ message: 'Por favor conecta tu wallet primero', type: 'error' })
+      setToast({ message: 'Please connect your wallet first', type: 'error' })
       return
     }
 
     if (!latitude || !longitude) {
-      setToast({ message: 'No se pudo obtener tu ubicación', type: 'error' })
+      setToast({ message: 'Could not get your location', type: 'error' })
       return
     }
 
@@ -82,7 +82,7 @@ export default function MapView() {
     
     if (!withinRadius) {
       const distance = calculateDistance(latitude, longitude, place.lat, place.lng)
-      setToast({ message: `Estás muy lejos (${Math.round(distance)}m). Debes estar a menos de ${place.radius}m del lugar.`, type: 'error' })
+      setToast({ message: `You are too far (${Math.round(distance)}m). You must be within ${place.radius}m of the place.`, type: 'error' })
       return
     }
 
@@ -111,7 +111,7 @@ export default function MapView() {
       }
     } catch (error) {
       console.error('Check-in error:', error)
-      setToast({ message: 'Error al hacer check-in. Intenta de nuevo.', type: 'error' })
+      setToast({ message: 'Check-in error. Please try again.', type: 'error' })
     } finally {
       setCheckingIn(false)
     }
@@ -121,9 +121,9 @@ export default function MapView() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold mb-2">⚠️ API Key No Configurada</h2>
+          <h2 className="text-red-800 font-semibold mb-2">⚠️ API Key Not Configured</h2>
           <p className="text-red-600">
-            Por favor configura VITE_GOOGLE_MAPS_API_KEY en tu archivo .env
+            Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file
           </p>
         </div>
       </div>
@@ -225,7 +225,7 @@ export default function MapView() {
                     </span>
                     {hasCheckedIn(selectedPlace.id) && (
                       <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded font-medium">
-                        ✓ Visitado
+                        ✓ Visited
                       </span>
                     )}
                   </div>
@@ -250,12 +250,12 @@ export default function MapView() {
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                       >
-                        {checkingIn ? '⏳ Haciendo Check-in...' : '✓ Hacer Check-in'}
+                        {checkingIn ? '⏳ Checking in...' : '✓ Check-in'}
                       </button>
                     )
                   ) : (
                     <p className="text-xs text-gray-500 text-center">
-                      Conecta tu wallet para hacer check-in
+                      Connect your wallet to check-in
                     </p>
                   )}
                 </div>

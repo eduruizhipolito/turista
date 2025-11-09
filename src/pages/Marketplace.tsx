@@ -36,7 +36,7 @@ export default function Marketplace() {
 
   const handlePurchase = async (product: IProduct, withDiscount: boolean) => {
     if (!isConnected || !publicKey || !kit) {
-      setToast({ message: 'Por favor conecta tu wallet primero', type: 'error' })
+      setToast({ message: 'Please connect your wallet first', type: 'error' })
       return
     }
 
@@ -52,7 +52,7 @@ export default function Marketplace() {
         if (currentAllowance < product.priceDiscountTUR) {
           console.log('⚠️ Insufficient allowance, requesting approval...')
           setToast({ 
-            message: 'Aprobando marketplace para quemar TUR tokens...', 
+            message: 'Approving marketplace to burn TUR tokens...', 
             type: 'success' 
           })
           
@@ -64,13 +64,13 @@ export default function Marketplace() {
           )
           
           if (!approveResult.success) {
-            setToast({ message: `Error al aprobar: ${approveResult.error}`, type: 'error' })
+            setToast({ message: `Approval error: ${approveResult.error}`, type: 'error' })
             return
           }
           
           console.log('✅ Approval successful!')
           setToast({ 
-            message: '✅ Aprobación exitosa. Procesando compra...', 
+            message: '✅ Approval successful. Processing purchase...', 
             type: 'success' 
           })
         }
@@ -93,7 +93,7 @@ export default function Marketplace() {
 
       if (result.success) {
         setToast({ 
-          message: `¡Compra exitosa de ${product.name}!`, 
+          message: `Successfully purchased ${product.name}!`, 
           type: 'success',
           txHash: result.txHash
         })
@@ -106,7 +106,7 @@ export default function Marketplace() {
       }
     } catch (error) {
       console.error('Purchase error:', error)
-      setToast({ message: 'Error al realizar la compra. Intenta de nuevo.', type: 'error' })
+      setToast({ message: 'Purchase error. Please try again.', type: 'error' })
     } finally {
       setPurchasing(false)
     }
@@ -118,7 +118,7 @@ export default function Marketplace() {
         <div className="max-w-2xl mx-auto text-center py-12">
           <h1 className="text-3xl font-bold mb-4">🛒 Marketplace</h1>
           <p className="text-gray-600 mb-6">
-            Conecta tu wallet para comprar productos y servicios
+            Connect your wallet to buy products and services
           </p>
           <div className="text-6xl mb-4">🔒</div>
         </div>
@@ -131,7 +131,7 @@ export default function Marketplace() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">🛒 Marketplace</h1>
         <p className="text-gray-600">
-          Compra con XLM o usa tus tokens TUR para obtener descuentos
+          Buy with XLM or use your TUR tokens to get discounts
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export default function Marketplace() {
 
                 <div className="flex items-center justify-between p-2 bg-green-50 rounded">
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium">Con descuento TUR:</span>
+                    <span className="text-sm font-medium">With TUR discount:</span>
                     <span className="text-xs text-gray-500">{product.priceDiscountTUR} TUR</span>
                   </div>
                   <span className="font-bold text-green-600">{product.priceDiscountXLM} XLM</span>
@@ -187,7 +187,7 @@ export default function Marketplace() {
                   disabled={purchasing}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  Comprar con XLM
+                  Buy with XLM
                 </button>
 
                 <button
@@ -198,7 +198,7 @@ export default function Marketplace() {
                   disabled={purchasing}
                   className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  Comprar con Descuento
+                  Buy with Discount
                 </button>
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function Marketplace() {
       {selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold mb-4">Confirmar Compra</h2>
+            <h2 className="text-2xl font-bold mb-4">Confirm Purchase</h2>
             
             <div className="mb-6">
               <p className="font-semibold mb-2">{selectedProduct.name}</p>
@@ -218,9 +218,9 @@ export default function Marketplace() {
               
               {/* Balances del usuario */}
               <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Tu saldo:</p>
+                <p className="text-xs font-semibold text-gray-700 mb-2">Your balance:</p>
                 {loadingBalances ? (
-                  <p className="text-sm text-gray-500">Cargando...</p>
+                  <p className="text-sm text-gray-500">Loading...</p>
                 ) : (
                   <div className="flex gap-4">
                     <div>
@@ -239,26 +239,26 @@ export default function Marketplace() {
               
               {useDiscount ? (
                 <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="font-semibold text-green-800 mb-2">Con Descuento TUR</p>
-                  <p className="text-sm">Pagarás: <span className="font-bold">{selectedProduct.priceDiscountXLM} XLM</span></p>
-                  <p className="text-sm">Consumirás: <span className="font-bold">{selectedProduct.priceDiscountTUR} TUR</span></p>
+                  <p className="font-semibold text-green-800 mb-2">With TUR Discount</p>
+                  <p className="text-sm">You'll pay: <span className="font-bold">{selectedProduct.priceDiscountXLM} XLM</span></p>
+                  <p className="text-sm">You'll spend: <span className="font-bold">{selectedProduct.priceDiscountTUR} TUR</span></p>
                   
                   {/* Validación de saldo */}
                   {!loadingBalances && (
                     <>
                       {balances.xlm < selectedProduct.priceDiscountXLM && (
-                        <p className="text-xs text-red-600 mt-2">⚠️ XLM insuficiente</p>
+                        <p className="text-xs text-red-600 mt-2">⚠️ Insufficient XLM</p>
                       )}
                       {balances.tur < selectedProduct.priceDiscountTUR && (
-                        <p className="text-xs text-red-600 mt-2">⚠️ TUR insuficiente</p>
+                        <p className="text-xs text-red-600 mt-2">⚠️ Insufficient TUR</p>
                       )}
                     </>
                   )}
                 </div>
               ) : (
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="font-semibold text-blue-800 mb-2">Precio Normal</p>
-                  <p className="text-sm">Pagarás: <span className="font-bold">{selectedProduct.priceXLM} XLM</span></p>
+                  <p className="font-semibold text-blue-800 mb-2">Regular Price</p>
+                  <p className="text-sm">You'll pay: <span className="font-bold">{selectedProduct.priceXLM} XLM</span></p>
                   
                   {/* Validación de saldo */}
                   {!loadingBalances && balances.xlm < selectedProduct.priceXLM && (
@@ -274,7 +274,7 @@ export default function Marketplace() {
                 disabled={purchasing}
                 className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={() => handlePurchase(selectedProduct, useDiscount)}
@@ -287,7 +287,7 @@ export default function Marketplace() {
                 }
                 className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
-                {purchasing ? '⏳ Comprando...' : 'Confirmar'}
+                {purchasing ? '⏳ Purchasing...' : 'Confirm'}
               </button>
             </div>
           </div>
