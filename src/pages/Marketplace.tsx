@@ -73,6 +73,9 @@ export default function Marketplace() {
             message: '✅ Approval successful. Processing purchase...', 
             type: 'success' 
           })
+          
+          // Wait a bit for the approval to be fully confirmed on the network
+          await new Promise(resolve => setTimeout(resolve, 1000))
         }
         
         result = await marketplaceService.purchaseWithDiscount(
