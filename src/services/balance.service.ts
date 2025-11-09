@@ -115,88 +115,150 @@ class BalanceService {
    */
   async getPurchaseHistory(address: string): Promise<any[]> {
     try {
-      // Obtener todas las operaciones de la cuenta
-      const operations = await this.horizonServer
-        .operations()
+      console.log('🔍 Obteniendo historial de compras para:', address)
+      
+      // Obtener transacciones de la cuenta
+      const transactions = await this.horizonServer
+        .transactions()
         .forAccount(address)
         .order('desc')
-        .limit(100)
+        .limit(50)
         .call()
-
-      // Agrupar operaciones por transacción
-      const transactionMap = new Map<string, any[]>()
-      
-      for (const op of operations.records) {
-        const txHash = op.transaction_hash
-        if (!transactionMap.has(txHash)) {
-          transactionMap.set(txHash, [])
-        }
-        transactionMap.get(txHash)!.push(op)
-      }
 
       const purchases: any[] = []
 
-      // Analizar cada transacción para detectar compras
-      for (const [txHash, ops] of transactionMap.entries()) {
-        // Buscar pago XLM enviado
-        const xlmPayment = ops.find(
-          (op: any) => 
-            op.type === 'payment' && 
-            op.from === address &&
-            op.asset_type === 'native'
-        )
+      console.log('📋 Total transacciones encontradas:', transactions.records.length)
 
-        if (xlmPayment) {
-          const xlmAmount = parseFloat(xlmPayment.amount)
-          
-          // Buscar si hay un invoke_host_function en la misma transacción (indica uso de contrato)
-          const contractCalls = ops.filter((op: any) => op.type === 'invoke_host_function')
-          
-          let turAmount = 0
-          let purchaseType = 'xlm_only'
-          let hasDiscount = false
+      for (const tx of transactions.records) {
+        try {
+          // Obtener operaciones de esta transacción
+          const operations = await this.horizonServer
+            .operations()
+            .forTransaction(tx.hash)
+            .call()
 
-          // Detectar si es compra con descuento basándose en los montos conocidos
-          // Mapeo de montos XLM de descuento a TUR
-          const discountPrices: Record<number, number> = {
-            30: 500,  // Tour Machu Picchu
-            25: 400,  // Tour Valle Sagrado
-            15: 250,  // Cena
-            20: 350,  // Experiencia Gastronómica
-            10: 150,  // Artesanía Andina
-            40: 600   // Textil Alpaca
-          }
+          // Buscar invoke_host_function (llamadas a contratos)
+          const contractCalls = operations.records.filter(
+            (op: any) => op.type === 'invoke_host_function'
+          )
 
-          // Si el monto coincide con un precio de descuento, es compra con descuento
-          if (discountPrices[xlmAmount]) {
-            hasDiscount = true
-            turAmount = discountPrices[xlmAmount]
-            purchaseType = 'xlm_tur_discount'
-          }
-          
-          // Verificación adicional: si hay llamadas a contrato, definitivamente es con descuento
-          if (contractCalls.length > 0 && !hasDiscount) {
-            hasDiscount = true
-            purchaseType = 'xlm_tur_discount'
-            // Intentar estimar TUR si no se detectó antes
-            if (turAmount === 0 && discountPrices[xlmAmount]) {
-              turAmount = discountPrices[xlmAmount]
+          // Buscar pagos XLM directos (compras sin contrato)
+          const xlmPayments = operations.records.filter(
+            (op: any): op is Horizon.ServerApi.PaymentOperationRecord => 
+              op.type === 'payment' && 
+              op.from === address &&
+              op.asset_type === 'native' &&
+              op.to !== address // No contar transferencias a uno mismo
+          )
+
+          // Procesar compras a través del marketplace contract
+          if (contractCalls.length > 0) {
+            console.log('📦 Transacción con contrato encontrada:', tx.hash)
+            
+            // Obtener los efectos de la transacción para ver los pagos XLM
+            const effects = await this.horizonServer
+              .effects()
+              .forTransaction(tx.hash)
+              .call()
+
+            // Buscar débitos de XLM del usuario (lo que realmente pagó)
+            const xlmDebits = effects.records.filter(
+              (effect: any) => 
+                effect.type === 'account_debited' &&
+                effect.asset_type === 'native' &&
+                effect.account === address
+            )
+
+            // Buscar créditos de XLM a merchants (para identificar el merchant principal)
+            const xlmCredits = effects.records.filter(
+              (effect: any) => 
+                effect.type === 'account_credited' &&
+                effect.asset_type === 'native' &&
+                effect.account !== address
+            )
+
+            // Solo mostrar UNA entrada por transacción, usando el débito total del usuario
+            if (xlmDebits.length > 0) {
+              // Sumar todos los débitos (puede haber fees, etc.)
+              const totalDebited = xlmDebits.reduce(
+                (sum: number, debit: any) => sum + parseFloat(debit.amount),
+                0
+              )
+              
+              // Identificar el merchant principal (el que recibe más XLM)
+              let merchantAddress = ''
+              if (xlmCredits.length > 0) {
+                const sortedCredits = xlmCredits.sort(
+                  (a: any, b: any) => parseFloat(b.amount) - parseFloat(a.amount)
+                )
+                merchantAddress = sortedCredits[0].account
+              }
+              
+              // Mapeo de montos XLM a TUR para detectar descuentos
+              // Solo incluimos los precios CON descuento (los que requieren TUR)
+              const discountPrices: Record<number, number> = {
+                30: 500,  // Tour Machu Picchu con descuento
+                25: 400,  // Tour Valle Sagrado con descuento
+                15: 250,  // Cena con descuento
+                20: 350,  // Experiencia Gastronómica con descuento
+                10: 150,  // Artesanía Andina con descuento
+                40: 600   // Textil Alpaca con descuento
+              }
+
+              const turAmount = discountPrices[totalDebited] || 0
+              const hasDiscount = turAmount > 0
+
+              console.log('✅ Compra detectada:', {
+                totalDebited,
+                turAmount,
+                hasDiscount,
+                merchant: merchantAddress,
+                txHash: tx.hash
+              })
+
+              purchases.push({
+                id: tx.id,
+                created_at: tx.created_at,
+                amountXLM: totalDebited,
+                amountTUR: turAmount,
+                to: merchantAddress,
+                transaction_hash: tx.hash,
+                type: hasDiscount ? 'xlm_tur_discount' : 'xlm_only',
+                hasDiscount: hasDiscount
+              })
             }
           }
+          // Procesar pagos XLM directos (sin contrato)
+          else if (xlmPayments.length > 0) {
+            console.log('💸 Pago XLM directo encontrado:', tx.hash)
+            
+            for (const payment of xlmPayments) {
+              const xlmAmount = parseFloat(payment.amount)
+              
+              console.log('✅ Pago directo detectado:', {
+                xlmAmount,
+                merchant: payment.to,
+                txHash: tx.hash
+              })
 
-          purchases.push({
-            id: xlmPayment.id,
-            created_at: xlmPayment.created_at,
-            amountXLM: xlmAmount,
-            amountTUR: turAmount,
-            to: xlmPayment.to,
-            transaction_hash: txHash,
-            type: purchaseType,
-            hasDiscount: hasDiscount
-          })
+              purchases.push({
+                id: payment.id,
+                created_at: payment.created_at,
+                amountXLM: xlmAmount,
+                amountTUR: 0,
+                to: payment.to,
+                transaction_hash: tx.hash,
+                type: 'xlm_only',
+                hasDiscount: false
+              })
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error procesando transacción:', tx.hash, error)
         }
       }
 
+      console.log('📊 Total compras encontradas:', purchases.length)
       return purchases
     } catch (error) {
       console.error('Error getting purchase history:', error)

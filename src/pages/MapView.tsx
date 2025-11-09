@@ -99,7 +99,7 @@ export default function MapView() {
 
       if (result.success) {
         setToast({ 
-          message: `¡Check-in exitoso en ${place.name}! NFT minteado`, 
+          message: `¡Check-in successful in ${place.name}! NFT minted`, 
           type: 'success',
           txHash: result.txHash 
         })
@@ -135,7 +135,7 @@ export default function MapView() {
       {/* Header con controles */}
       <div className="bg-white border-b p-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">🗺️ Tu Ubicación</h1>
+          <h1 className="text-2xl font-bold text-gray-800">🗺️ Your Location</h1>
           <p className="text-sm text-gray-600">
             {loading && 'Obteniendo ubicación...'}
             {error && <span className="text-red-600">{error}</span>}
@@ -288,7 +288,7 @@ export default function MapView() {
                   rel="noopener noreferrer"
                   className="text-xs text-white hover:text-gray-200 underline flex items-center gap-1"
                 >
-                  Ver detalles ↗️
+                  See details ↗️
                 </a>
               </div>
             )}

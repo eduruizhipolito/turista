@@ -318,7 +318,7 @@ export default function Marketplace() {
                   rel="noopener noreferrer"
                   className="text-sm text-white/90 hover:text-white underline inline-flex items-center gap-1"
                 >
-                  Ver detalles ↗️
+                  See details ↗️
                 </a>
               </div>
             )}
