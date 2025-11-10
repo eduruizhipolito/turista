@@ -1,8 +1,8 @@
 # Turista 🌍
 
-Plataforma de turismo que recompensa visitas a lugares turísticos con NFTs únicos y tokens TUR, utilizables en un marketplace de productos y servicios de comerciantes locales.
+Tourism platform that rewards visits to tourist attractions with unique NFTs and TUR tokens, usable in a marketplace of products and services from local merchants.
 
-## Stack Tecnológico
+## Tech Stack
 
 - **Frontend:** React 19 + TypeScript + Vite
 - **Smart Contracts:** Rust + Soroban SDK 22.0.0
@@ -11,50 +11,50 @@ Plataforma de turismo que recompensa visitas a lugares turísticos con NFTs úni
 - **Maps:** Google Maps API
 - **Styling:** TailwindCSS
 
-## Características
+## Features
 
-- ✅ Autenticación con Freighter Wallet
-- 🗺️ Mapa interactivo con lugares turísticos
-- 📍 Sistema de check-in con validación de geolocalización
-- 🎨 NFTs únicos por cada lugar visitado (soulbound)
-- 💰 Tokens TUR como recompensa por check-ins
-- 🛒 Marketplace con descuentos usando TUR
-- 👤 Perfil de usuario con estadísticas
+- ✅ Authentication with Freighter Wallet
+- 🗺️ Interactive map with tourist attractions
+- 📍 Check-in system with geolocation validation
+- 🎨 Unique NFTs for each visited place (soulbound)
+- 💰 TUR tokens as rewards for check-ins
+- 🛒 Marketplace with discounts using TUR
+- 👤 User profile with statistics
 
-## Instalación
+## Installation
 
-### Prerequisitos
+### Prerequisites
 
 - Node.js 18+
 - Rust 1.70+
 - Stellar CLI 23.1.4+
-- Freighter Wallet instalado
+- Freighter Wallet installed
 
 ### Setup
 
-1. Clonar el repositorio:
+1. Clone the repository:
 ```bash
-git clone https://github.com/tu-usuario/turista.git
+git clone https://github.com/your-username/turista.git
 cd turista
 ```
 
-2. Instalar dependencias del frontend:
+2. Install frontend dependencies:
 ```bash
 npm install
 ```
 
-3. Configurar variables de entorno:
+3. Configure environment variables:
 ```bash
 cp .env.example .env
-# Editar .env con tus API keys y contract addresses
+# Edit .env with your API keys and contract addresses
 ```
 
-4. Compilar smart contracts:
+4. Compile smart contracts:
 ```bash
 npm run build:contracts
 ```
 
-5. Iniciar servidor de desarrollo:
+5. Start development server:
 ```bash
 npm run dev
 ```
@@ -62,30 +62,30 @@ npm run dev
 ## Smart Contracts
 
 ### CheckinNFT Contract
-Maneja el minteo de NFTs únicos por cada check-in en lugares turísticos.
+Handles the minting of unique NFTs for each check-in at tourist attractions.
 
 ### TUR Token Contract
-Token fungible estándar SAC usado como recompensa y para descuentos.
+Standard SAC fungible token used as reward and for discounts.
 
 ### Marketplace Contract
-Gestiona compras de productos con XLM o XLM + TUR con descuento.
+Manages product purchases with XLM or XLM + TUR with discount.
 
-## Desarrollo
+## Development
 
 ```bash
-# Desarrollo frontend
+# Frontend development
 npm run dev
 
 # Build frontend
 npm run build
 
-# Compilar contratos
+# Compile contracts
 npm run build:contracts
 
-# Tests de contratos
+# Contract tests
 npm run test:contracts
 ```
 
-## Licencia
+## License
 
 MIT
